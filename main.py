@@ -83,9 +83,14 @@ def parse_metadata_anime(titolo_originale):
     return serie_name, season, lang, ani_id, airing
 
 def get_info(nome):
-    api = "https://api.jikan.moe/v4/anime/"
-    response = requests.get(api+"?limit=1&q="+nome)
-    return response.json().get("data")[0]
+    api = "https://api.jikan.moe/v4/anime/?limit=1&q=" + nome
+    for _ in range(3):  # prova 3 volte
+        response = requests.get(api)
+        data = response.json().get("data")
+        if data:
+            return data[0]
+        sleep(2)  # aspetta 1 secondo e riprova
+    return None
 
 def get_airing(id):
     api = f"https://api.jikan.moe/v4/anime/{id}"
@@ -100,13 +105,15 @@ def cerca_nome(query):
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
 
-        # 1. Controllo se è presente il div di errore/alert
         if soup.find("div", class_="alert alert-danger"):
             print("[!] ANIME NON TROVATO")
-            input("Premi INVIO per riprovare con un altro nome")
             return False
 
-        # 2. Se non c'è l'alert, procedo con il parsing dei titoli
+        # Rimuovi tutti i widget-body tranne il primo
+        widget_bodies = soup.find_all("div", class_="widget-body")
+        for wb in widget_bodies[1:]:
+            wb.decompose()
+
         titoli = soup.find_all("a", class_="name")
         fatto = {}
         for titolo in titoli:
@@ -511,7 +518,6 @@ def scegli_ep(next_ep=False, ricarica=False):
     carica(url_ep_scelto)
 
 def carica_preferiti():
-    global anime_scelto, url_scelto
     if os.path.exists("preferiti.txt"):
         with open("preferiti.txt", "r") as f:
             preferiti = {}
@@ -521,8 +527,7 @@ def carica_preferiti():
                     preferiti[nome] = link
         return preferiti
     else:
-        print("Nessun preferito trovato.")
-        return {}
+        return None
 
 def salva_preferito():
     global anime_scelto, url_scelto
