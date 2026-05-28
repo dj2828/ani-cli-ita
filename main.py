@@ -14,6 +14,14 @@ import zipfile
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+# --- VARIABILI GLOBALI ---
+anime_scelto = ""
+url_scelto = ""
+ep_attuale = 0
+max_ep = 0
+stop_download = False
+BASE_URL = "https://www.animeworld.ac/"
+
 # --- CONFIGURAZIONE DATABASE ---
 DB_FILE = "db.json"
 
@@ -38,13 +46,6 @@ def _session_request_no_verify(self, method, url, *args, **kwargs):
     return _original_session_request(self, method, url, *args, **kwargs)
 requests.Session.request = _session_request_no_verify
 
-# --- VARIABILI GLOBALI ---
-anime_scelto = ""
-url_scelto = ""
-ep_attuale = 0
-max_ep = 0
-stop_download = False
-
 # --- UTILS ---
 def path_giusto(titolo):
     # Rimuove caratteri illegali per le cartelle
@@ -60,19 +61,15 @@ def parse_metadata_anime(titolo_originale):
     # 1. Rileva la lingua
     lang = "ITA" if "(ITA)" in titolo_originale else "SUB"
     
-    # 2. Pulisci il titolo dai tag per l'elaborazione successiva
-    titolo_clean = titolo_originale.replace("(ITA)", "").strip()
-    
-    # 3. Logica esistente per la stagione
+    # 2. Logica esistente per la stagione
     season = 1
-    serie_name = titolo_clean
 
-    match_season = re.search(r"(?:Season\s+(\d+)|(\d+)(?:st|nd|rd|th)?\s+Season)", titolo_clean, re.IGNORECASE)
+    match_season = re.search(r"(?:Season\s+(\d+)|(\d+)(?:st|nd|rd|th)?\s+Season)", titolo_originale, re.IGNORECASE)
     
     if match_season:
         season = int(match_season.group(1) or match_season.group(2))
     else:
-        match_num = re.search(r"\s(\d+)$", titolo_clean)
+        match_num = re.search(r"\s(\d+)$", titolo_originale)
         if match_num:
             season = int(match_num.group(1))
     
@@ -97,15 +94,24 @@ def get_airing(id):
 
 # --- SCRAPING ---
 def cerca_nome(query):
-    url = f"https://www.animeworld.ac/search?keyword={query}"
+    url = f"{BASE_URL}search?keyword={query}"
     response = requests.get(url)
+
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
-        # Modifica il selettore in base alla struttura della pagina
+
+        # 1. Controllo se è presente il div di errore/alert
+        if soup.find("div", class_="alert alert-danger"):
+            print("[!] ANIME NON TROVATO")
+            input("Premi INVIO per riprovare con un altro nome")
+            return False
+
+        # 2. Se non c'è l'alert, procedo con il parsing dei titoli
         titoli = soup.find_all("a", class_="name")
         fatto = {}
         for titolo in titoli:
-            fatto[titolo.text.strip()] = titolo['href']
+            fatto[titolo.text.strip()] = titolo["href"]
+
         return fatto if fatto else False
     return False
 
@@ -131,7 +137,7 @@ def get_real_video_url(url):
     global stop_download
     stop_download = False
 
-    url_pagina_video = f"https://www.animeworld.ac/api/episode/serverPlayerAnimeWorld?id={url.split('/')[-1]}"
+    url_pagina_video = f"{BASE_URL}api/episode/serverPlayerAnimeWorld?id={url.split('/')[-1]}"
 
     response = requests.get(url_pagina_video)
     soup = BeautifulSoup(response.text, "html.parser")
@@ -141,7 +147,7 @@ def get_real_video_url(url):
 
 # --- CORE FUNCTIONS ---
 
-def carica(ep, url):
+def carica(url):
     def ensure_mpv():
         def down_mpv():
             API_URL = "https://api.github.com/repos/mpv-player/mpv/releases/latest"
@@ -330,7 +336,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False):
         
         # Evita di rifare richieste se il file esiste
         if not os.path.exists(filepath):
-            real_url = get_real_video_url(f"https://www.animeworld.ac{link}")
+            real_url = get_real_video_url(BASE_URL + link)
             if real_url:
                 with open(filepath, "w") as f:
                     f.write(real_url)
@@ -382,7 +388,7 @@ def aggiorna_libreria():
             
             if ep_num not in downloaded or not os.path.exists(filepath):
                 print(f" -> Nuovo episodio trovato: {ep_num}")
-                real_url = get_real_video_url(f"https://www.animeworld.ac{link}")
+                real_url = get_real_video_url(BASE_URL + link)
                 if real_url:
                     with open(filepath, "w") as f:
                         f.write(real_url)
@@ -450,7 +456,7 @@ def scegli_anime():
         selection_result = prompt(questions)
         if not selection_result: return False
         
-        url_scelto = f"https://www.animeworld.ac{selection_result['anime_selection']}"
+        url_scelto = BASE_URL + selection_result['anime_selection']
         # Find the key (anime title) corresponding to the selected value (link)
         anime_scelto = next(key for key, value in risultati.items() if value == selection_result['anime_selection'])
         print(f"Hai scelto: {anime_scelto}")
@@ -501,8 +507,8 @@ def scegli_ep(next_ep=False, ricarica=False):
             return
 
     episodio_nome = list(episodi.keys())[ep_attuale]
-    url_ep_scelto = f"https://www.animeworld.ac{episodi[episodio_nome]}"
-    carica(episodio_nome, url_ep_scelto)
+    url_ep_scelto = BASE_URL + episodi[episodio_nome]
+    carica(url_ep_scelto)
 
 def carica_preferiti():
     global anime_scelto, url_scelto
@@ -628,14 +634,14 @@ def cerca_upt(percorso_base = "./down"):
     for nome_path in tutti:
         print("Controllo:", nome_path)
         nome, url_ani = next(iter(cerca_nome(nome_path.replace(" - ", ": ")).items()))
-        url_ani = f"https://www.animeworld.ac{url_ani}"
+        url_ani = BASE_URL + url_ani
         episodi = cerca_ep(url_ani)
         episodi_presenti = get_episodi_presenti(nome_path)
         for nome_ep, url in episodi.items():
             if nome_ep in episodi_presenti: continue
             else:
                 if nome not in mancanti: mancanti[nome] = []  # Crea la lista per questa serie
-                mancanti[nome].append((nome_ep, f"https://www.animeworld.ac{url}"))
+                mancanti[nome].append((nome_ep, BASE_URL + url))
     return mancanti
 
 
