@@ -4,8 +4,82 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ani-CLI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .anime {
+            padding-bottom: 20px;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--primary-color);
+            width: 150px;
+            text-align: center;
+            overflow: hidden;
+        }
+        .anime img {
+            width: 150px;
+        }
+        .anime p {
+            margin-top: 10px;
+        }
+        .container-anime {
+            display: flex;
+            gap: 50px;
+            flex-wrap: wrap;
+        }
+
+        .sezione {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            margin: 0 100px;
+            justify-content: space-evenly;
+        }
+    </style>
 </head>
 <body>
-    
+    {% if anime_prefe %}
+        <div class="sezione">
+            <h1>⭐ Preferiti ⭐</h1>
+            <div class="container-anime">
+                {% for anime_title, url in anime_prefe.items() %}
+                <div class="anime">
+                    <a href="/play/{{ url }}">
+                        <img src="img/{{ anime_title }}" alt="">
+                        <p>{{ anime_title }}</p>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <center>
+    <br><br>
+    <form action="/cerca" method="get">
+        <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;">
+        <button type="submit" style="color: black;">Cerca</button>
+    </form>
+    <br><br>
+    </center>
+
+    {% if risultati %}
+    <div class="sezione">
+        <h1>🔍 Risultati 🔍</h1>
+        <div class="container-anime">
+            {% for anime_title, url in risultati.items() %}
+            <div class="anime">
+                <a href="/play/{{ url }}">
+                    <img src="img/{{ anime_title }}">
+                    <p>{{ anime_title }}</p>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 </body>
 </html>

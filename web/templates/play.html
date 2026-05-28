@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ani-CLI</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        body{
+            overflow: hidden;
+        }
+        #container {
+            padding: 0;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+        #ep-container{
+            display: flex;
+            margin-top: 20px;
+            border-radius: 20px;
+            overflow: hidden;
+        }
+        .ep{
+            margin: 0;
+            background-color: var(--primary-color);
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .ep a{
+            text-decoration: none;
+            display: block;
+            padding: 20px;
+        }
+        .ep:hover{
+            background-color: var(--secondary-color);
+        }
+
+        .active{
+            background-color: var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <video controls style="width:50%; aspect-ratio: 16/9;">
+            <source src="{{ video_url }}" type="video/mp4">
+        </video>
+        
+        <div id="ep-container">
+            {% for episode_title, url in ep.items() %}
+                <div class="ep{% if episode_title == current_id %} active{% endif %}">
+                    <a href="{{ url }}?id={{ episode_title }}">{{ episode_title }}</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>
