@@ -2,3 +2,6 @@ requests
 bs4
 InquirerPy
 tqdm
+
+# per web ui
+flask
