@@ -17,6 +17,8 @@ def getEpisodi(anime_url):
 @app.route('/')
 def index():
     prefe = ani.carica_preferiti()
+    if not prefe:
+        prefe = {}
     for anime_title, url in prefe.items():
         prefe[anime_title] = url.split('/')[-1]  # Estrai solo la parte finale dell'URL
     return render_template('index.html', anime_prefe=prefe)

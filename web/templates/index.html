@@ -72,7 +72,7 @@
         <div class="container-anime">
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
-                <a href="/play/{{ url }}">
+                <a href="{{ url }}">
                     <img src="img/{{ anime_title }}">
                     <p>{{ anime_title }}</p>
                 </a>
