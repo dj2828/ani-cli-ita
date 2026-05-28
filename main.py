@@ -461,7 +461,7 @@ def scegli_anime():
 
 def scegli_ep(next_ep=False, ricarica=False):
     global ep_attuale, max_ep
-    os.system('cls')
+    os.system('cls' if os.name == 'nt' else 'clear')
     episodi = cerca_ep(url_scelto)
     if not episodi:
         print("Nessun episodio trovato.")
@@ -557,9 +557,9 @@ def rimuovi_preferito():
         return
 
 def menu_post_visione():
-    os.system('cls')
     global stop_download
     while True:
+        os.system('cls' if os.name == 'nt' else 'clear')
         preferiti = carica_preferiti()
         choices = []
 
@@ -577,7 +577,7 @@ def menu_post_visione():
         if anime_scelto not in preferiti:
             choices.append(Choice(value="salva", name="⭐ Salva anime nei preferiti"))
         
-        choices.append(Choice(value="esci", name="🚪 Esci"))
+        choices.append(Choice(value="esci", name="🚪 Indietro"))
 
         questions = [{
             "type": "list",
