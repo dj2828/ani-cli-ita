@@ -14,14 +14,17 @@ def getEpisodi(anime_url):
     ep = ani.cerca_ep(anime_url)
     return ep
 
-@app.route('/')
-def index():
+def getPreferiti():
     prefe = ani.carica_preferiti()
     if not prefe:
         prefe = {}
     for anime_title, url in prefe.items():
         prefe[anime_title] = url.split('/')[-1]  # Estrai solo la parte finale dell'URL
-    return render_template('index.html', anime_prefe=prefe)
+    return prefe
+
+@app.route('/')
+def index():
+    return render_template('index.html', anime_prefe=getPreferiti())
 
 @app.route('/img/<anime>')
 def img_anime(anime):
@@ -64,7 +67,30 @@ def proxy():
 def cerca():
     q = request.args.get("q")
     risultati = ani.cerca_nome(q) if q else {}
-    return render_template('index.html', risultati=risultati)
+    return render_template('index.html', anime_prefe=getPreferiti(), risultati=risultati)
+
+
+@app.post('/prefe')
+def prefe():
+    url = request.form.get('url')
+    nome = request.form.get('nome')
+    
+    pref = ani.carica_preferiti()
+    if not pref:
+        pref = {}
+
+    if nome in pref:
+        del pref[nome]
+    else:
+        pref[nome] = BASE_URL + url
+
+    with open('preferiti.txt', 'w', encoding='utf-8') as f:
+        for title, link in pref.items():
+            f.write(f"{title} - {link}\n")
+
+    return "ok", 200
+    
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080)

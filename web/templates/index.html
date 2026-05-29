@@ -51,6 +51,7 @@
                         <img src="img/{{ anime_title }}" alt="">
                         <p>{{ anime_title }}</p>
                     </a>
+                    <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">🖤</div>
                 </div>
                 {% endfor %}
             </div>
@@ -76,10 +77,28 @@
                     <img src="img/{{ anime_title }}">
                     <p>{{ anime_title }}</p>
                 </a>
+                <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
             </div>
             {% endfor %}
         </div>
     </div>
     {% endif %}
+
+    <script>
+        async function prefe(url, nome) {
+            const formData = new FormData();
+            formData.append('url', url);
+            formData.append('nome', nome);
+
+            const response = await fetch('/prefe', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            }
+        }
+    </script>
 </body>
 </html>
