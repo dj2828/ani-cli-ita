@@ -53,7 +53,7 @@ def path_giusto(titolo):
     titolo = "".join(c for c in titolo if c.isalnum() or c in " .-_()[]")
     return titolo.strip()
 
-def parse_metadata_anime(titolo_originale):
+def parse_metadata_anime(titolo_originale, ani_id):
     """
     Estrae Nome, Stagione, Lingua e ani_id.
     Return: (serie_name, season, lang, ani_id)
@@ -73,24 +73,19 @@ def parse_metadata_anime(titolo_originale):
         if match_num:
             season = int(match_num.group(1))
     
-    data = get_info(titolo_originale)
+    data = get_info(ani_id)
 
     serie_name = data.get("title_english")
     if not serie_name: serie_name = data.get("title")
-    ani_id = data.get("mal_id")
     airing = data.get("airing")
     
-    return serie_name, season, lang, ani_id, airing
+    return serie_name, season, lang, airing
 
-def get_info(nome):
-    api = "https://api.jikan.moe/v4/anime/?limit=1&q=" + nome
-    for _ in range(3):  # prova 3 volte
-        response = requests.get(api)
-        data = response.json().get("data")
-        if data:
-            return data[0]
-        sleep(2)  # aspetta 1 secondo e riprova
-    return None
+def get_info(id):
+    api = f"https://api.jikan.moe/v4/anime/{id}"
+    response = requests.get(api)
+    data = response.json().get("data")
+    return data
 
 def get_airing(id):
     api = f"https://api.jikan.moe/v4/anime/{id}"
@@ -151,6 +146,15 @@ def get_real_video_url(url):
     link = soup.find("video").find("source")["src"]
 
     return link
+
+def get_mal_id_from_url(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+        mal_id = soup.find("a", id="mal-button")["href"].split("/")[-1]
+        return mal_id
+    else:
+        print("Errore nella richiesta")
 
 # --- CORE FUNCTIONS ---
 
@@ -232,7 +236,7 @@ def carica(url):
     sleep(2)
     proc.wait()
 
-def url_jelly(episodi_dict, anime_url, anime_scelto_=False):
+def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     def chiedi_info_a_utente(guess_serie, ani_id, guess_season, guess_status):
         guess_status_str = "In Corso" if guess_status else "Concluso"
         print("\nDati rilevati:")
@@ -303,8 +307,10 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False):
     titolo_completo = anime_scelto_ if anime_scelto_ else anime_scelto
     titolo_completo = path_giusto(titolo_completo)
 
+    ani_id = get_mal_id_from_url(anime_url)
+
     # 1. Indovina i metadati
-    guess_serie, guess_season, guess_lang, ani_id, airing = parse_metadata_anime(titolo_completo)
+    guess_serie, guess_season, guess_lang, airing = parse_metadata_anime(titolo_completo, ani_id)
     print(f"\nConfigurazione salvataggio per: {titolo_completo}")
 
     if guess_lang == "ITA":
