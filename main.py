@@ -469,7 +469,7 @@ def scegli_anime():
         selection_result = prompt(questions)
         if not selection_result: return False
         
-        url_scelto = BASE_URL + selection_result['anime_selection']
+        url_scelto = BASE_URL + selection_result['anime_selection'][1:] # non prende il / iniziale a /play/...
         # Find the key (anime title) corresponding to the selected value (link)
         anime_scelto = next(key for key, value in risultati.items() if value == selection_result['anime_selection'])
         print(f"Hai scelto: {anime_scelto}")
