@@ -28,31 +28,8 @@ def index():
 
 @app.get('/img/<anime>') # uso lapi di anilist che quella di mal è lenta
 def img_anime(anime):
-    import re
-    # "Jujutsu Kaisen (ITA)" → "Jujutsu Kaisen"
-    anime = re.sub(r'\(.*?\)', '', anime).strip()
-    query = """
-        query ($titolo: String) {
-            Media(search: $titolo, type: ANIME) {
-                coverImage {
-                    large
-                }
-            }
-        }
-    """
-    response = requests.post(
-        'https://graphql.anilist.co',
-        json={ 'query': query, 'variables': { 'titolo': anime } }
-    )
-
-    data = response.json()
-
-    if not data.get('data') or not data['data'].get('Media'):
-        print(f"[img_anime] Anime non trovato: '{anime}'")
-        return "Not Found", 404
-
-    image_url = data['data']['Media']['coverImage']['large']
-    return redirect(image_url)
+    url = f"https://img.animeworld.ac/locandine/{anime.split('.')[-1]}.jpg"
+    return redirect(url)
 
 @app.route('/play/<path:ep_url>')
 def carica_ep(ep_url):

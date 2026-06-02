@@ -48,7 +48,7 @@
                 {% for anime_title, url in anime_prefe.items() %}
                 <div class="anime">
                     <a href="/play/{{ url }}">
-                        <img src="img/{{ anime_title }}" alt="">
+                        <img src="img/{{ url }}">
                         <p>{{ anime_title }}</p>
                     </a>
                     <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">🖤</div>
@@ -74,7 +74,7 @@
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
                 <a href="{{ url }}">
-                    <img src="img/{{ anime_title }}">
+                    <img src="img/{{ url.split('/')[-1] }}"> <!-- split pk ritorna play/... -->
                     <p>{{ anime_title }}</p>
                 </a>
                 <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
