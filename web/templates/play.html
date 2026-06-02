@@ -52,8 +52,8 @@
         
         <div id="ep-container">
             {% for episode_title, url in ep.items() %}
-                <div class="ep{% if episode_title == current_id %} active{% endif %}">
-                    <a href="{{ url }}?id={{ episode_title }}">{{ episode_title }}</a>
+                <div class="ep{% if episode_title == current_ep %} active{% endif %}">
+                    <a href="{{ url }}?ep={{ episode_title }}">{{ episode_title }}</a>
                 </div>
             {% endfor %}
         </div>

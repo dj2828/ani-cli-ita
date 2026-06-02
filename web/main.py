@@ -26,19 +26,33 @@ def getPreferiti():
 def index():
     return render_template('index.html', anime_prefe=getPreferiti())
 
-@app.get('/img/<anime>') # uso lapi di anilist che quella di mal è lenta
+import requests
+from flask import redirect
+
+@app.get('/img/<anime>')
 def img_anime(anime):
-    url = f"https://img.animeworld.ac/locandine/{anime.split('.')[-1]}.jpg"
-    return redirect(url)
+    anime_id = anime.split('.')[-1] 
+    
+    jpg_url = f"https://img.animeworld.ac/locandine/{anime_id}.jpg"
+    png_url = f"https://img.animeworld.ac/locandine/{anime_id}.png"
+    
+    # Inviamo una richiesta HEAD per verificare l'esistenza del JPG senza scaricare l'immagine
+    response = requests.head(jpg_url, allow_redirects=True, timeout=3)
+    
+    if response.status_code == 200:
+        return redirect(jpg_url)
+    else:
+        # Se il JPG dà 404 (o qualsiasi altro errore), viriamo sul PNG
+        return redirect(png_url)
 
 @app.route('/play/<path:ep_url>')
 def carica_ep(ep_url):
     if '/' not in ep_url:
         # non ha l'episodio quindi fallback al primo episodio
-        return redirect(list(getEpisodi(ep_url).values())[0] + "?id=1")
-    id = request.args.get("id")
+        return redirect(list(getEpisodi(ep_url).values())[0] + "?ep=1")
+    ep = request.args.get("ep") # il numero dell'episodio serve solo per evidenziare l'episodio attivo
     url = ani.get_real_video_url(ep_url)
-    return render_template('play.html', video_url=f"/play/proxy?url={url}", ep=getEpisodi(ep_url), current_id=id)
+    return render_template('play.html', video_url=f"/play/proxy?url={url}", ep=getEpisodi(ep_url), current_ep=ep)
 
 @app.route("/play/proxy")
 def proxy():
