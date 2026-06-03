@@ -20,6 +20,8 @@ url_scelto = ""
 ep_attuale = 0
 max_ep = 0
 stop_download = False
+syncplay = False
+syncplay_ip = "syncplay.pl:8999"
 BASE_URL = "https://www.animeworld.ac/"
 
 # --- CONFIGURAZIONE DATABASE ---
@@ -158,73 +160,73 @@ def get_mal_id_from_url(url):
 
 # --- CORE FUNCTIONS ---
 
-def carica(url):
-    def ensure_mpv():
-        def down_mpv():
-            API_URL = "https://api.github.com/repos/mpv-player/mpv/releases/latest"
-            OUTPUT_FILE = "mpv.zip"
-            print("🔍 Recupero latest release...")
+def ensure_mpv():
+    def down_mpv():
+        API_URL = "https://api.github.com/repos/mpv-player/mpv/releases/latest"
+        OUTPUT_FILE = "mpv.zip"
+        print("🔍 Recupero latest release...")
 
-            r = requests.get(API_URL)
+        r = requests.get(API_URL)
+        r.raise_for_status()
+        data = r.json()
+
+        assets = data.get("assets", [])
+
+        # Cerca il file giusto (Windows x64 msvc)
+        download_url = None
+        for asset in assets:
+            name = asset["name"]
+            if "x86_64-pc-windows-msvc" in name:
+                download_url = asset["browser_download_url"]
+                print(f"✅ Trovato: {name}")
+                break
+
+        if not download_url:
+            raise Exception("❌ File Windows x64 non trovato!")
+
+        print("⬇️ Download in corso...")
+
+        with requests.get(download_url, stream=True) as r:
             r.raise_for_status()
-            data = r.json()
+            with open(OUTPUT_FILE, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
 
-            assets = data.get("assets", [])
+        print(f"✅ Scaricato: {OUTPUT_FILE}")
 
-            # Cerca il file giusto (Windows x64 msvc)
-            download_url = None
-            for asset in assets:
-                name = asset["name"]
-                if "x86_64-pc-windows-msvc" in name:
-                    download_url = asset["browser_download_url"]
-                    print(f"✅ Trovato: {name}")
-                    break
+    # Prova mpv nel PATH
+    try:
+        result = subprocess.run(["where", "mpv"], capture_output=True, text=True)
+        for line in result.stdout.splitlines():
+            if line.strip().lower().endswith("mpv.exe"):
+                return line.strip()
+    except FileNotFoundError:
+        pass
 
-            if not download_url:
-                raise Exception("❌ File Windows x64 non trovato!")
+    # Prova mpv locale
+    local_path = os.path.join("mpv", "mpv.exe")
+    if os.path.exists(local_path):
+        return local_path
 
-            print("⬇️ Download in corso...")
+    # Scarica mpv
+    print("Download di mpv in corso...")
+    down_mpv()
 
-            with requests.get(download_url, stream=True) as r:
-                r.raise_for_status()
-                with open(OUTPUT_FILE, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
+    os.makedirs("mpv", exist_ok=True)
 
-            print(f"✅ Scaricato: {OUTPUT_FILE}")
+    with zipfile.ZipFile("mpv.zip", "r") as zip_ref:
+        zip_ref.extractall("mpv")
 
-        # Prova mpv nel PATH
-        try:
-            subprocess.Popen(["mpv", "--version"],
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL)
-            return "mpv"
-        except FileNotFoundError:
-            pass
+    os.remove("mpv.zip")
 
-        # Prova mpv locale
-        local_path = os.path.join("mpv", "mpv.exe")
-        if os.path.exists(local_path):
-            return local_path
+    # Cerca mpv.exe dentro la cartella estratta
+    for root, _, files in os.walk("mpv"):
+        if "mpv.exe" in files:
+            return os.path.join(root, "mpv.exe")
 
-        # Scarica mpv
-        print("Download di mpv in corso...")
-        down_mpv()
+    raise FileNotFoundError("mpv.exe non trovato dopo l'estrazione")
 
-        os.makedirs("mpv", exist_ok=True)
-
-        with zipfile.ZipFile("mpv.zip", "r") as zip_ref:
-            zip_ref.extractall("mpv")
-
-        os.remove("mpv.zip")
-
-        # Cerca mpv.exe dentro la cartella estratta
-        for root, _, files in os.walk("mpv"):
-            if "mpv.exe" in files:
-                return os.path.join(root, "mpv.exe")
-
-        raise FileNotFoundError("mpv.exe non trovato dopo l'estrazione")
-
+def carica(url):
     url = get_real_video_url(url)
 
     mpv_path = ensure_mpv()
@@ -435,6 +437,130 @@ def aggiorna_libreria():
     print(f"\n✅ Aggiornamento completato. {count_new} nuovi episodi aggiunti.")
     input("Premi invio per tornare al menu...")
 
+# -- SYNCPLAY FUNCTION ---
+def ensure_syncplay():
+    def down_syncplay():
+        API_URL = "https://api.github.com/repos/Syncplay/syncplay/releases/latest"
+        OUTPUT_FILE = "syncplay.zip"
+        print("🔍 Recupero latest release...")
+
+        r = requests.get(API_URL)
+        r.raise_for_status()
+        data = r.json()
+
+        assets = data.get("assets", [])
+
+        # Cerca il file giusto (Portable.zip)
+        download_url = None
+        for asset in assets:
+            name = asset["name"]
+            if "Portable.zip" in name:
+                download_url = asset["browser_download_url"]
+                print(f"✅ Trovato: {name}")
+                break
+
+        if not download_url:
+            raise Exception("❌ File Portable.zip non trovato!")
+
+        print("⬇️  Download in corso...")
+
+        with requests.get(download_url, stream=True) as r:
+            r.raise_for_status()
+            with open(OUTPUT_FILE, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+
+        print(f"✅ Scaricato: {OUTPUT_FILE}")
+
+    # Prova syncplay nel PATH
+    try:
+        subprocess.Popen(["syncplay", "--version"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL)
+        return "syncplay"
+    except FileNotFoundError:
+        pass
+
+    # Prova syncplay locale
+    local_path = os.path.join("syncplay", "SyncplayConsole.exe")
+    if os.path.exists(local_path):
+        return local_path
+
+    # Scarica syncplay
+    print("Download di syncplay in corso...")
+    down_syncplay()
+
+    os.makedirs("syncplay", exist_ok=True)
+
+    with zipfile.ZipFile("syncplay.zip", "r") as zip_ref:
+        zip_ref.extractall("syncplay")
+
+    os.remove("syncplay.zip")
+
+    # Cerca Syncplay.exe dentro la cartella estratta
+    for root, _, files in os.walk("syncplay"):
+        if "Syncplay.exe" in files:
+            return os.path.join(root, "Syncplay.exe")
+
+    raise FileNotFoundError("Syncplay.exe non trovato dopo l'estrazione")
+def syncplay_init(ip=syncplay_ip, url=""):
+    def create_playlist(ep_url):
+        import tempfile
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        tmp.write(ep_url + "\n")
+        tmp.close()
+        return tmp.name
+
+    syncplay_path = ensure_syncplay()
+    
+    if url:
+        url = get_real_video_url(url)
+        playlist_path = create_playlist(url)
+    else:
+        playlist_path = ""
+
+    print(f"Avvio Syncplay con IP: {ip}, URL: {url}")
+    sleep(1)
+
+    # Avvia il client
+    proc = subprocess.Popen([
+        syncplay_path,
+        # "--no-gui",
+        "-a", ip,
+        "-r", "Ani-CLI-ITA-Room",
+        "--load-playlist-from-file", playlist_path
+    ])
+    proc.wait()
+
+def syncplay_config():
+    answers = prompt([
+        {
+            "type": "input",
+            "name": "name",
+            "message": "Inserisci il tuo username:",
+            "validate": EmptyInputValidator("Il nome non può essere vuoto"),
+        },
+    ])
+
+    syncplay_nome = answers["name"]
+
+    syncplay_path = ensure_syncplay()
+    mpv_path = ensure_mpv()
+
+    syncplay_config_path = os.path.join(os.path.dirname(syncplay_path), "syncplay.ini")
+    config = f"""
+[client_settings]
+trusteddomains = ['youtube.com', 'youtu.be', 'srv26-marte.sweetpixel.org']
+perplayerarguments = {{'{mpv_path}': ['--save-position-on-quit']}}
+playerpath = {mpv_path}
+name = {syncplay_nome}
+readyatstart = True
+"""
+
+    with open(syncplay_config_path, "w") as f:
+        f.write(config)
+
+
 # --- MENU FUNCTIONS ---
 
 def scegli_anime():
@@ -479,7 +605,7 @@ def scegli_anime():
         return False
 
 def scegli_ep(next_ep=False, ricarica=False):
-    global ep_attuale, max_ep
+    global ep_attuale, max_ep, syncplay
     os.system('cls' if os.name == 'nt' else 'clear')
     episodi = cerca_ep(url_scelto)
     if not episodi:
@@ -495,6 +621,8 @@ def scegli_ep(next_ep=False, ricarica=False):
     else:
         ep_choices = []
         ep_choices.append(Choice(value="jelly", name=f"▶️  Aggiungi a Jellyfin"))
+        if not syncplay:
+            ep_choices.append(Choice(value="sync", name=f"🔗 Avvia Syncplay"))
         ep_choices += [Choice(value=link, name=f"Episodio {i+1}: {nome}") for i, (nome, link) in enumerate(episodi.items())]
         questions = [
             {
@@ -511,6 +639,14 @@ def scegli_ep(next_ep=False, ricarica=False):
             if selection_result['episode_selection'] == "jelly":
                 url_jelly(episodi, url_scelto)
                 return True
+            if selection_result['episode_selection'] == "sync":
+                syncplay = True
+                syncplay_config()
+                os.system('cls' if os.name == 'nt' else 'clear')
+                print("Scegli l'episodio da guardare.")
+                sleep(2)
+                scegli_ep()
+                return
 
             # Find the index of the chosen episode
             selected_link = selection_result['episode_selection']
@@ -521,7 +657,11 @@ def scegli_ep(next_ep=False, ricarica=False):
 
     episodio_nome = list(episodi.keys())[ep_attuale]
     url_ep_scelto = BASE_URL + episodi[episodio_nome]
-    carica(url_ep_scelto)
+    
+    if syncplay:
+        syncplay_init(url=url_ep_scelto)
+    else:
+        carica(url_ep_scelto)
 
 def carica_preferiti():
     if os.path.exists("preferiti.txt"):
@@ -668,7 +808,8 @@ def main():
         choices = [
             Choice("cerca", "🔍 Cerca un nuovo anime"),
             Choice("aggiorna", "🔄 Aggiorna Libreria (Check Nuovi Episodi)"),
-            Choice("rimuovi", "🗑️  Rimuovi un anime dai preferiti")
+            Choice(value="sync", name=f"🔗 Connettiti a Syncplay"),
+            Choice("rimuovi", "🗑️ Rimuovi un anime dai preferiti")
         ]
         
         if preferiti:
@@ -700,6 +841,11 @@ def main():
                 rimuovi_preferito()
             elif scelta == "aggiorna":
                 aggiorna_libreria()
+            elif scelta == "sync":
+                global syncplay
+                syncplay = True
+                syncplay_config()
+                syncplay_init()
             else: # An anime from favorites was selected
                 url_scelto = scelta
                 anime_scelto = next(key for key, value in preferiti.items() if value == scelta)
