@@ -550,7 +550,7 @@ def syncplay_config():
     syncplay_config_path = os.path.join(os.path.dirname(syncplay_path), "syncplay.ini")
     config = f"""
 [client_settings]
-trusteddomains = ['youtube.com', 'youtu.be', 'srv26-marte.sweetpixel.org']
+trusteddomains = ['youtube.com', 'youtu.be', '*.sweetpixel.org']
 perplayerarguments = {{'{mpv_path}': ['--save-position-on-quit']}}
 playerpath = {mpv_path}
 name = {syncplay_nome}
@@ -797,9 +797,10 @@ def cerca_upt(percorso_base = "./down"):
 
 
 def main():
-    global anime_scelto, url_scelto
+    global anime_scelto, url_scelto, syncplay
     
     while True:
+        syncplay = False # lo faccio qua pk bo
         os.system('cls' if os.name == 'nt' else 'clear')
         print("Benvenuto in Ani-CLI-ITA!")
 
@@ -842,7 +843,6 @@ def main():
             elif scelta == "aggiorna":
                 aggiorna_libreria()
             elif scelta == "sync":
-                global syncplay
                 syncplay = True
                 syncplay_config()
                 syncplay_init()
