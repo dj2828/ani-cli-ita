@@ -492,18 +492,15 @@ def ensure_syncplay():
         if which("pacman"):
             os.system("sudo pacman -S syncplay --noconfirm")
         elif which("apt"):
-            os.system("sudo apt install syncplay -y")
+            down_syncplay(apt=linux)
+            os.system("sudo apt install ./syncplay.deb")
+            os.remove("syncplay.deb")
         os.system("pip install twisted")
         return which("syncplay")
 
     # Scarica syncplay
     print("Download di syncplay in corso...")
     down_syncplay(apt=linux)
-
-    if linux:
-        os.system("sudo apt install ./syncplay.deb")
-        os.remove("syncplay.deb")
-        return which("syncplay")
 
     os.makedirs("syncplay", exist_ok=True)
 
