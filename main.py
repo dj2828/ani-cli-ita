@@ -436,9 +436,9 @@ def aggiorna_libreria():
 
 # -- SYNCPLAY FUNCTION ---
 def ensure_syncplay():
-    def down_syncplay():
+    def down_syncplay(apt=False):
         API_URL = "https://api.github.com/repos/Syncplay/syncplay/releases/latest"
-        OUTPUT_FILE = "syncplay.zip"
+        OUTPUT_FILE = "syncplay.zip" if not apt else "syncplay.deb"
         print("🔍 Recupero latest release...")
 
         r = requests.get(API_URL)
@@ -451,7 +451,11 @@ def ensure_syncplay():
         download_url = None
         for asset in assets:
             name = asset["name"]
-            if "Portable.zip" in name:
+            if apt and name.endswith(".deb"):
+                download_url = asset["browser_download_url"]
+                print(f"✅ Trovato pacchetto apt: {name}")
+                break
+            if "Portable.zip" in name and not apt:
                 download_url = asset["browser_download_url"]
                 print(f"✅ Trovato: {name}")
                 break
@@ -469,6 +473,8 @@ def ensure_syncplay():
 
         print(f"✅ Scaricato: {OUTPUT_FILE}")
 
+    linux = os.name != 'nt'
+
     # Trova Syncplay nel PATH
     from shutil import which
     syncplay_path = which("syncplay")
@@ -481,8 +487,8 @@ def ensure_syncplay():
         return local_path
 
     # installa Syncplay per Linux
-    if os.name != 'nt' and not which("wine"):
-        print("Wine non trovato. Installazione in corso...")
+    if linux:
+        print("Syncplay non trovato. Installazione in corso...")
         if which("pacman"):
             os.system("sudo pacman -S syncplay --noconfirm")
         elif which("apt"):
@@ -492,7 +498,12 @@ def ensure_syncplay():
 
     # Scarica syncplay
     print("Download di syncplay in corso...")
-    down_syncplay()
+    down_syncplay(apt=linux)
+
+    if linux:
+        os.system("sudo apt install ./syncplay.deb")
+        os.remove("syncplay.deb")
+        return which("syncplay")
 
     os.makedirs("syncplay", exist_ok=True)
 
