@@ -194,14 +194,14 @@ def ensure_mpv():
 
         print(f"✅ Scaricato: {OUTPUT_FILE}")
 
-    # Prova mpv nel PATH
-    try:
-        result = subprocess.run(["where", "mpv"], capture_output=True, text=True)
-        for line in result.stdout.splitlines():
-            if line.strip().lower().endswith("mpv.exe"):
-                return line.strip()
-    except FileNotFoundError:
-        pass
+    # Trova mpv nel PATH
+    from shutil import which
+    mpv_path = which("mpv")
+    if mpv_path:
+        return mpv_path
+
+    print("mpv non trovato nel PATH. Verifico cartella locale...")
+    sleep(20)
 
     # Prova mpv locale
     local_path = os.path.join("mpv", "mpv.exe")
