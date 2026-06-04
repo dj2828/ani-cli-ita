@@ -200,9 +200,6 @@ def ensure_mpv():
     if mpv_path:
         return mpv_path
 
-    print("mpv non trovato nel PATH. Verifico cartella locale...")
-    sleep(20)
-
     # Prova mpv locale
     local_path = os.path.join("mpv", "mpv.exe")
     if os.path.exists(local_path):
@@ -472,19 +469,26 @@ def ensure_syncplay():
 
         print(f"✅ Scaricato: {OUTPUT_FILE}")
 
-    # Prova syncplay nel PATH
-    try:
-        subprocess.Popen(["syncplay", "--version"],
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL)
-        return "syncplay"
-    except FileNotFoundError:
-        pass
+    # Trova Syncplay nel PATH
+    from shutil import which
+    syncplay_path = which("syncplay")
+    if syncplay_path:
+        return syncplay_path
 
     # Prova syncplay locale
     local_path = os.path.join("syncplay", "SyncplayConsole.exe")
     if os.path.exists(local_path):
         return local_path
+
+    # installa Syncplay per Linux
+    if os.name != 'nt' and not which("wine"):
+        print("Wine non trovato. Installazione in corso...")
+        if which("pacman"):
+            os.system("sudo pacman -S syncplay --noconfirm")
+        elif which("apt"):
+            os.system("sudo apt install syncplay -y")
+        os.system("pip install twisted")
+        return which("syncplay")
 
     # Scarica syncplay
     print("Download di syncplay in corso...")
@@ -503,6 +507,7 @@ def ensure_syncplay():
             return os.path.join(root, "Syncplay.exe")
 
     raise FileNotFoundError("Syncplay.exe non trovato dopo l'estrazione")
+
 def syncplay_init(ip=syncplay_ip, url=""):
     def create_playlist(ep_url):
         import tempfile
@@ -525,7 +530,7 @@ def syncplay_init(ip=syncplay_ip, url=""):
     # Avvia il client
     proc = subprocess.Popen([
         syncplay_path,
-        # "--no-gui",
+        "--no-gui",
         "-a", ip,
         "-r", "Ani-CLI-ITA-Room",
         "--load-playlist-from-file", playlist_path
@@ -547,7 +552,10 @@ def syncplay_config():
     syncplay_path = ensure_syncplay()
     mpv_path = ensure_mpv()
 
-    syncplay_config_path = os.path.join(os.path.dirname(syncplay_path), "syncplay.ini")
+    if os.name == 'nt':
+        syncplay_config_path = os.path.join(os.path.dirname(syncplay_path), "syncplay.ini")
+    else: # path config di linux
+        syncplay_config_path = os.path.expanduser("~/.config/syncplay.ini")
     config = f"""
 [client_settings]
 trusteddomains = ['youtube.com', 'youtu.be', '*.sweetpixel.org']
