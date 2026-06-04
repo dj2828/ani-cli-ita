@@ -493,7 +493,7 @@ def ensure_syncplay():
             os.system("sudo pacman -S syncplay --noconfirm")
         elif which("apt"):
             down_syncplay(apt=linux)
-            os.system("sudo apt install ./syncplay.deb")
+            os.system("sudo apt install ./syncplay.deb -y")
             os.remove("syncplay.deb")
         os.system("pip install twisted")
         return which("syncplay")
