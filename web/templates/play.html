@@ -20,7 +20,7 @@
         }
         #ep-container{
             display: flex;
-            margin-top: 20px;
+            margin: 20px;
             border-radius: 20px;
             overflow: hidden;
             flex-wrap: wrap;
@@ -43,11 +43,32 @@
         .active{
             background-color: var(--secondary-color);
         }
+
+        .button {
+            background-color: #ff5500;
+            padding: 10px;
+            border-radius: 10px;
+            position: fixed;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        video { width:50%; }
+
+        @media (max-width: 1050px) {
+            video {
+                width: 80%;
+            }
+            .ep a {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="button" onclick="location.href=this.ritorna" id="indietro">Indietro</div>
     <div id="container">
-        <video controls style="width:50%; aspect-ratio: 16/9;">
+        <video controls style="aspect-ratio: 16/9;">
             <source src="{{ video_url }}" type="video/mp4">
         </video>
         
@@ -59,5 +80,16 @@
             {% endfor %}
         </div>
     </div>
+
+    <script>
+        let indietro = document.getElementById('indietro');
+        const q = localStorage.getItem("return");
+
+        if (q) {
+            indietro.ritorna = "../../?q=" + q;
+        } else {
+            indietro.ritorna = "../../"
+        }
+    </script>
 </body>
 </html>

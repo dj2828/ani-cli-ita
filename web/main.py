@@ -24,64 +24,24 @@ def getPreferiti():
 
 @app.route('/')
 def index():
+    if q := request.args.get("q"):
+        risultati = ani.cerca_nome(q) if q else {}
+        return render_template('index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q)
     return render_template('index.html', anime_prefe=getPreferiti())
-
-import requests
-from flask import redirect
 
 @app.get('/img/<anime>')
 def img_anime(anime):
-    anime_id = anime.split('.')[-1] 
-    
-    jpg_url = f"https://img.animeworld.ac/locandine/{anime_id}.jpg"
-    png_url = f"https://img.animeworld.ac/locandine/{anime_id}.png"
-    
-    # Inviamo una richiesta HEAD per verificare l'esistenza del JPG senza scaricare l'immagine
-    response = requests.head(jpg_url, allow_redirects=True, timeout=3)
-    
-    if response.status_code == 200:
-        return redirect(jpg_url)
-    else:
-        # Se il JPG dà 404 (o qualsiasi altro errore), viriamo sul PNG
-        return redirect(png_url)
+    anime_id = anime.split('.')[-1]
+    return redirect(f"https://img.animeworld.ac/locandine/{anime_id}.jpg")
 
 @app.route('/play/<path:ep_url>')
 def carica_ep(ep_url):
+    episodi = getEpisodi(ep_url)
     if '/' not in ep_url:
-        # non ha l'episodio quindi fallback al primo episodio
-        return redirect(list(getEpisodi(ep_url).values())[0] + "?ep=1")
-    ep = request.args.get("ep") # il numero dell'episodio serve solo per evidenziare l'episodio attivo
+        return redirect(list(episodi.values())[0] + "?ep=1")
+    ep = request.args.get("ep")
     url = ani.get_real_video_url(ep_url)
-    return render_template('play.html', video_url=f"/play/proxy?url={url}", ep=getEpisodi(ep_url), current_ep=ep)
-
-@app.route("/play/proxy")
-def proxy():
-    url = request.args.get("url")
-    headers = {}
-    
-    # Passa il Range header se presente (fondamentale per lo streaming video)
-    if "Range" in request.headers:
-        headers["Range"] = request.headers["Range"]
-    
-    r = requests.get(url, stream=True, verify=False, headers=headers)
-    
-    return Response(
-        stream_with_context(r.iter_content(chunk_size=1024*1024)),
-        status=r.status_code,  # 206 Partial Content
-        content_type=r.headers.get("Content-Type", "video/mp4"),
-        headers={
-            "Accept-Ranges": "bytes",
-            "Content-Range": r.headers.get("Content-Range", ""),
-            "Content-Length": r.headers.get("Content-Length", ""),
-        }
-    )
-
-@app.route('/cerca')
-def cerca():
-    q = request.args.get("q")
-    risultati = ani.cerca_nome(q) if q else {}
-    return render_template('index.html', anime_prefe=getPreferiti(), risultati=risultati)
-
+    return render_template('play.html', video_url=f"{url}", ep=episodi, current_ep=ep)
 
 @app.post('/prefe')
 def prefe():

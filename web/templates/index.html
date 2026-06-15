@@ -7,12 +7,7 @@
     <link rel="stylesheet" href="/static/style.css">
     <style>
         .anime {
-            padding-bottom: 20px;
             border-radius: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             background-color: var(--primary-color);
             width: 150px;
             text-align: center;
@@ -20,14 +15,27 @@
         }
         .anime img {
             width: 150px;
+            height: 250px;
+            object-fit: cover;
+            object-position: center;
         }
         .anime p {
             margin-top: 10px;
+        }
+        .anime a {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
         }
         .container-anime {
             display: flex;
             gap: 50px;
             flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
         }
 
         .sezione {
@@ -37,6 +45,32 @@
             gap: 20px;
             margin: 0 100px;
             justify-content: space-evenly;
+        }
+
+        .button {
+            background-color: #ff5500;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 1050px) {
+            h1 {
+                font-size: large;
+            }
+            .anime {
+                width: 90px;
+                margin: 0;
+            }
+            .anime img {
+                height: 100px;
+            }
+            .sezione {
+                margin: 0 20px;
+            }
+            .container-anime {
+                gap: 20px;
+            }
         }
     </style>
 </head>
@@ -48,10 +82,10 @@
                 {% for anime_title, url in anime_prefe.items() %}
                 <div class="anime">
                     <a href="/play/{{ url }}">
-                        <img src="img/{{ url }}">
+                        <img src="img/{{ url }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
                         <p>{{ anime_title }}</p>
+                        <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">🖤</div>
                     </a>
-                    <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">🖤</div>
                 </div>
                 {% endfor %}
             </div>
@@ -60,9 +94,9 @@
 
     <center>
     <br><br>
-    <form action="/cerca" method="get">
-        <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;">
-        <button type="submit" style="color: black;">Cerca</button>
+    <form action="/" method="get">
+        <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
+        <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
     <br><br>
     </center>
@@ -74,10 +108,10 @@
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
                 <a href="{{ url }}">
-                    <img src="img/{{ url.split('/')[-1] }}"> <!-- split pk ritorna play/... -->
+                    <img src="img/{{ url.split('/')[-1] }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}"> <!-- split pk ritorna play/... -->
                     <p>{{ anime_title }}</p>
+                    <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
                 </a>
-                <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
             </div>
             {% endfor %}
         </div>
@@ -99,6 +133,9 @@
                 window.location.reload();
             }
         }
+
+        localStorage.setItem("return", "{{ q if q else '' }}");
+
     </script>
 </body>
 </html>
