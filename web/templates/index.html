@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ani-CLI</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/ani.css">
     <style>
         .anime {
             border-radius: 20px;
@@ -81,8 +81,8 @@
             <div class="container-anime">
                 {% for anime_title, url in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="/play/{{ url }}">
-                        <img src="img/{{ url }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                    <a href="{{ url_for('ani.play', ep_url=url) }}">
+                        <img src="{{ url_for('ani.img_anime', anime=url) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
                         <p>{{ anime_title }}</p>
                         <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">🖤</div>
                     </a>
@@ -94,7 +94,7 @@
 
     <center>
     <br><br>
-    <form action="/" method="get">
+    <form action="{{ url_for('ani.index') }}" method="get">
         <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
         <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
@@ -107,8 +107,8 @@
         <div class="container-anime">
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
-                <a href="{{ url }}">
-                    <img src="img/{{ url.split('/')[-1] }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}"> <!-- split pk ritorna play/... -->
+                <a href="{{ url_for('ani.play', ep_url=url.split('/')[-1]) }}"><!-- split pk ritorna play/... -->
+                    <img src="{{ url_for('ani.img_anime', anime=url.split('/')[-1]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}"> <!-- split pk ritorna play/... -->
                     <p>{{ anime_title }}</p>
                     <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
                 </a>
@@ -124,7 +124,7 @@
             formData.append('url', url);
             formData.append('nome', nome);
 
-            const response = await fetch('/prefe', {
+            const response = await fetch('{{ url_for("ani.prefe") }}', {
                 method: 'POST',
                 body: formData
             });

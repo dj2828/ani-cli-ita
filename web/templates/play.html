@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ani-CLI</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/ani.css">
     <style>
         body{
             overflow: hidden;
@@ -75,7 +75,7 @@
         <div id="ep-container">
             {% for episode_title, url in ep.items() %}
                 <div class="ep{% if episode_title == current_ep %} active{% endif %}">
-                    <a href="{{ url }}?ep={{ episode_title }}">{{ episode_title }}</a>
+                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode_title }}">{{ episode_title }}</a>
                 </div>
             {% endfor %}
         </div>
