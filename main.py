@@ -4,13 +4,6 @@ import subprocess
 import os
 import re
 import json
-from time import sleep
-from InquirerPy import prompt
-from InquirerPy.validator import EmptyInputValidator
-from InquirerPy.base.control import Choice
-from InquirerPy.separator import Separator
-from tqdm import tqdm
-import zipfile
 
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -874,5 +867,13 @@ def main():
             break
 
 if __name__ == "__main__":
+    from time import sleep
+    from InquirerPy import prompt
+    from InquirerPy.validator import EmptyInputValidator
+    from InquirerPy.base.control import Choice
+    from InquirerPy.separator import Separator
+    from tqdm import tqdm
+    import zipfile
+    
     main()
     # cerca_upt()

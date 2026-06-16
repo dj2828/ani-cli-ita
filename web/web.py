@@ -1,11 +1,15 @@
 from flask import Flask, Blueprint, render_template, request, redirect, url_for
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+import os, sys, importlib.util
 sys.dont_write_bytecode = True
-try:
-    from moduli.ani_cli import main as ani  # come modulo
-except ImportError:
-    import main as ani  # standalone
+
+# import main (chiedi a claude)
+_main_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "main.py")
+if not os.path.exists(_main_path):  # standalone, main.py è una cartella su
+    _main_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "main.py")
+_spec = importlib.util.spec_from_file_location("ani_main", _main_path)
+ani = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(ani)
+
 
 BASE_URL = "https://www.animeworld.ac"
 IS_STANDALONE = __name__ == '__main__'
