@@ -3,7 +3,7 @@ import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.dont_write_bytecode = True
 try:
-    from ..ani_cli import main as ani  # come modulo
+    from moduli.ani_cli import main as ani  # come modulo
 except ImportError:
     import main as ani  # standalone
 
