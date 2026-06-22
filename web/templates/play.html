@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ani-CLI</title>
+    <title>Ani-CLI - {{ title }}</title>
     <link rel="stylesheet" href="/static/ani.css">
     <style>
         body{
@@ -73,9 +73,9 @@
         </video>
         
         <div id="ep-container">
-            {% for episode_title, url in ep.items() %}
-                <div class="ep{% if episode_title == current_ep %} active{% endif %}">
-                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode_title }}">{{ episode_title }}</a>
+            {% for episode, url in ep.items() %}
+                <div class="ep{% if episode == current_ep %} active{% endif %}">
+                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode }}&title={{ title }}-{{ episode }}">{{ episode }}</a>
                 </div>
             {% endfor %}
         </div>
@@ -90,6 +90,18 @@
         } else {
             indietro.ritorna = "../../"
         }
+
+        function setCookie(nome, valore, giorni = 365) {
+            const scadenza = new Date();
+            scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
+            document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
+        }
+        
+        let url = window.location.href;
+        url = url.split("play/").at(-1);
+        let last = {"url": url, "title": "{{ title }}"};
+        console.log(last);
+        setCookie("last", JSON.stringify(last))
     </script>
 </body>
 </html>

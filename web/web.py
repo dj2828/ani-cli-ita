@@ -1,5 +1,6 @@
 from flask import Flask, Blueprint, render_template, request, redirect, url_for
-import os, sys, importlib.util
+from urllib.parse import unquote
+import os, sys, importlib.util, json
 sys.dont_write_bytecode = True
 
 # import main (chiedi a claude)
@@ -21,12 +22,21 @@ def getEpisodi(anime_url):
     return ep
 
 def getPreferiti():
-    prefe = ani.carica_preferiti()
-    if not prefe:
-        prefe = {}
+    if not IS_STANDALONE:
+        raw = request.cookies.get("prefe")
+        prefe = json.loads(unquote(raw)) if raw else {}
+    else:
+        prefe = ani.carica_preferiti()
+        if not prefe:
+            prefe = {}
     for anime_title, url in prefe.items():
         prefe[anime_title] = url.split('/')[-1]
     return prefe
+
+def getLastWatched():
+    raw = request.cookies.get("last")
+    last = json.loads(unquote(raw)) if raw else None
+    return last
 
 blueprint = Blueprint('ani', __name__, url_prefix='/ani')
 
@@ -34,8 +44,8 @@ blueprint = Blueprint('ani', __name__, url_prefix='/ani')
 def index():
     if q := request.args.get("q"):
         risultati = ani.cerca_nome(q) if q else {}
-        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q)
-    return render_template(f'{T}index.html', anime_prefe=getPreferiti())
+        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
+    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getLastWatched())
 
 @blueprint.get('/img/<anime>')
 def img_anime(anime):
@@ -45,12 +55,13 @@ def img_anime(anime):
 @blueprint.route('/play/<path:ep_url>')
 def play(ep_url):
     episodi = getEpisodi(ep_url)
+    title = request.args.get("title")
     if '/' not in ep_url:
         first_url = list(episodi.values())[0]
-        return redirect(url_for('ani.play', ep_url=ep_url) + "/" + first_url.split('/')[-1] + "?ep=1")
+        return redirect(url_for('ani.play', ep_url=ep_url) + "/" + first_url.split('/')[-1] + "?ep=1" + "&title=" + title)
     ep = request.args.get("ep")
     url = ani.get_real_video_url(ep_url)
-    return render_template(f'{T}play.html', video_url=url, ep=episodi, current_ep=ep)
+    return render_template(f'{T}play.html', video_url=url, ep=episodi, current_ep=ep, title=title)
 
 @blueprint.post('/prefe')
 def prefe():

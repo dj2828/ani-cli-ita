@@ -75,16 +75,30 @@
     </style>
 </head>
 <body>
+    {% if continua %}
+        <div class="sezione">
+            <h1>Continua</h1>
+            <div class="container-anime">
+                <div class="anime">
+                    <a href="play/{{ continua.url }}">
+                        <img src="{{ url_for('ani.img_anime', anime=continua.url.split('/')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                        <p>{{ continua.title }}</p>
+                        <div onclick="event.stopPropagation(); event.preventDefault(); document.cookie = `last=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`; window.location.reload()" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">❌</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
     {% if anime_prefe %}
         <div class="sezione">
             <h1>⭐ Preferiti ⭐</h1>
             <div class="container-anime">
                 {% for anime_title, url in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="{{ url_for('ani.play', ep_url=url) }}">
+                    <a href="{{ url_for('ani.play', ep_url=url) }}?title={{ anime_title }}">
                         <img src="{{ url_for('ani.img_anime', anime=url) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
                         <p>{{ anime_title }}</p>
-                        <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">🖤</div>
+                        <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
                     </a>
                 </div>
                 {% endfor %}
@@ -107,10 +121,10 @@
         <div class="container-anime">
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
-                <a href="{{ url_for('ani.play', ep_url=url.split('/')[-1]) }}"><!-- split pk ritorna play/... -->
+                <a href="{{ url_for('ani.play', ep_url=url.split('/')[-1]) }}?title={{ anime_title }}"><!-- split pk ritorna play/... -->
                     <img src="{{ url_for('ani.img_anime', anime=url.split('/')[-1]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}"> <!-- split pk ritorna play/... -->
                     <p>{{ anime_title }}</p>
-                    <div onclick="prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
+                    <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', '{{ anime_title }}')" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
                 </a>
             </div>
             {% endfor %}
@@ -120,6 +134,25 @@
 
     <script>
         async function prefe(url, nome) {
+            {% if vercel %}
+            function getCookie(nome) {
+                const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
+                return match ? decodeURIComponent(match[2]) : null;
+            }
+            function setCookie(nome, valore, giorni = 365) {
+                const scadenza = new Date();
+                scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
+                document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
+            }
+            let prefe = JSON.parse(getCookie("prefe")) || {};
+            if (nome in prefe) {
+                delete prefe[nome];
+            } else {
+                prefe[nome] = url;
+            }
+            setCookie("prefe", JSON.stringify(prefe));
+            location.reload();
+            {% else %}
             const formData = new FormData();
             formData.append('url', url);
             formData.append('nome', nome);
@@ -132,6 +165,7 @@
             if (response.ok) {
                 window.location.reload();
             }
+            {% endif %}
         }
 
         localStorage.setItem("return", "{{ q if q else '' }}");
