@@ -48,7 +48,6 @@
             background-color: #ff5500;
             padding: 10px;
             border-radius: 10px;
-            position: fixed;
             margin: 10px;
             cursor: pointer;
         }
@@ -66,7 +65,7 @@
     </style>
 </head>
 <body>
-    <div class="button" onclick="location.href=this.ritorna" id="indietro">Indietro</div>
+    <div class="button" onclick="location.href=this.ritorna" id="indietro" style="position: fixed;">Indietro</div>
     <div id="container">
         <video controls style="aspect-ratio: 16/9;">
             <source src="{{ video_url }}" type="video/mp4">
@@ -79,12 +78,12 @@
                 </div>
             {% endfor %}
         </div>
+        <a href="{{ video_url }}" target="_blank" style="text-decoration: none;"><div class="button">Scarica Video</div></a>
     </div>
 
     <script>
         let indietro = document.getElementById('indietro');
         const q = localStorage.getItem("return");
-
         if (q) {
             indietro.ritorna = "../../?q=" + q;
         } else {
@@ -96,7 +95,6 @@
             scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
             document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
         }
-        
         let url = window.location.href;
         url = url.split("play/").at(-1);
         let last = {"url": url, "title": "{{ title }}"};
