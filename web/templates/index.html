@@ -76,16 +76,22 @@
 </head>
 <body>
     {% if continua %}
-        <div class="sezione">
+        <div class="sezione" id="continua">
             <h1>Continua</h1>
             <div class="container-anime">
+                {% for item in continua %}
                 <div class="anime">
-                    <a href="play/{{ continua.url }}">
-                        <img src="{{ url_for('ani.img_anime', anime=continua.url.split('/')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
-                        <p>{{ continua.title }}</p>
-                        <div onclick="event.stopPropagation(); event.preventDefault(); document.cookie = `last=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`; window.location.reload()" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">❌</div>
+                    <a href="play/{{ item.url }}">
+                        <img src="{{ url_for('ani.img_anime', anime=item.url.split('/')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                        <p>{{ item.title }}</p>
+                        <div onclick="
+                                event.stopPropagation();
+                                event.preventDefault();
+                                removeFromHistory('{{ item.url }}', this);
+                            " style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">❌</div>
                     </a>
                 </div>
+                {% endfor %}
             </div>
         </div>
     {% endif %}
@@ -166,6 +172,43 @@
                 window.location.reload();
             }
             {% endif %}
+        }
+
+        function getCookie(nome) {
+            const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+        function setCookie(nome, valore, giorni = 365) {
+            const scadenza = new Date();
+            scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
+            document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
+        }
+        function removeFromHistory(url, el) {
+            let history = [];
+            const raw = getCookie("history");
+
+            if (raw) {
+                try {
+                    history = JSON.parse(raw);
+                } catch (e) {
+                    history = [];
+                }
+            }
+
+            // rimuove solo l'elemento con quell'url
+            history = history.filter(h => h.url !== url);
+
+            setCookie("history", JSON.stringify(history));
+
+            // rimuove l'elemento dalla UI senza ricaricare la pagina
+            const card = el.closest('.anime'); // adatta la classe al tuo markup
+            if (card) card.remove();
+
+            // se la history è vuota, nascondi il contenitore "continua"
+            if (history.length === 0) {
+                const cont = document.getElementById('continua');
+                if (cont) cont.style.display = 'none';
+            }
         }
 
         localStorage.setItem("return", "{{ q if q else '' }}");

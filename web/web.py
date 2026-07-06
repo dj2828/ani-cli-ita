@@ -33,10 +33,10 @@ def getPreferiti():
         prefe[anime_title] = url.split('/')[-1]
     return prefe
 
-def getLastWatched():
-    raw = request.cookies.get("last")
-    last = json.loads(unquote(raw)) if raw else None
-    return last
+def getHistoryWatched():
+    raw = request.cookies.get("history")
+    history = json.loads(unquote(raw)) if raw else None
+    return history
 
 blueprint = Blueprint('ani', __name__, url_prefix='/ani')
 
@@ -45,7 +45,7 @@ def index():
     if q := request.args.get("q"):
         risultati = ani.cerca_nome(q) if q else {}
         return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
-    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getLastWatched())
+    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getHistoryWatched())
 
 @blueprint.get('/img/<anime>')
 def img_anime(anime):
@@ -58,7 +58,7 @@ def play(ep_url):
     title = request.args.get("title")
     if '/' not in ep_url:
         first_url = list(episodi.values())[0]
-        return redirect(url_for('ani.play', ep_url=ep_url) + "/" + first_url.split('/')[-1] + "?ep=1" + "&title=" + title)
+        return redirect(url_for('ani.play', ep_url=ep_url) + "/" + first_url.split('/')[-1] + "?ep=1" + "&title=" + title + " - 1")
     ep = request.args.get("ep")
     url = ani.get_real_video_url(ep_url)
     return render_template(f'{T}play.html', video_url=url, ep=episodi, current_ep=ep, title=title)

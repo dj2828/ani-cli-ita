@@ -67,14 +67,14 @@
 <body>
     <div class="button" onclick="location.href=this.ritorna" id="indietro" style="position: fixed;">Indietro</div>
     <div id="container">
-        <video controls style="aspect-ratio: 16/9;">
+        <video controls style="aspect-ratio: 16/9;" id="mainVideo" autoplay>
             <source src="{{ video_url }}" type="video/mp4">
         </video>
         
         <div id="ep-container">
             {% for episode, url in ep.items() %}
                 <div class="ep{% if episode == current_ep %} active{% endif %}">
-                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode }}&title={{ title }}-{{ episode }}">{{ episode }}</a>
+                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode }}&title={{ title.split(' - ')[0] }} - {{ episode }}">{{ episode }}</a>
                 </div>
             {% endfor %}
         </div>
@@ -95,11 +95,77 @@
             scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
             document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
         }
-        let url = window.location.href;
-        url = url.split("play/").at(-1);
-        let last = {"url": url, "title": "{{ title }}"};
-        console.log(last);
-        setCookie("last", JSON.stringify(last))
+        function getCookie(nome) {
+            const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+        function getSeriesName(title) {
+            return title.replace(/\s*-\s*\d+\s*$/, "").trim();
+        }
+        function getEpisodeNumber(title) {
+            const match = title.match(/-\s*(\d+)\s*$/);
+            return match ? parseInt(match[1], 10) : null;
+        }
+        function addToHistory(item, maxItems = 20) {
+            let history = [];
+            const raw = getCookie("history");
+
+            if (raw) {
+                try {
+                    history = JSON.parse(raw);
+                } catch (e) {
+                    history = [];
+                }
+            }
+
+            const seriesName = getSeriesName(item.title);
+            const newEp = getEpisodeNumber(item.title);
+            item.series = seriesName;
+
+            // cerca se esiste già una voce per questa serie
+            const existingIndex = history.findIndex(h => getSeriesName(h.title) === seriesName);
+
+            if (existingIndex !== -1) {
+                const existingEp = getEpisodeNumber(history[existingIndex].title);
+
+                // se il nuovo episodio non è più avanti di quello salvato, non fare nulla
+                if (existingEp !== null && newEp !== null && newEp <= existingEp) {
+                    return; // episodio uguale o precedente, ignora
+                }
+
+                // altrimenti rimuovi quella vecchia per sostituirla
+                history.splice(existingIndex, 1);
+            }
+
+            // aggiunge la nuova voce (episodio più avanti, o serie nuova) in cima
+            history.unshift(item);
+
+            if (history.length > maxItems) {
+                history = history.slice(0, maxItems);
+            }
+
+            setCookie("history", JSON.stringify(history));
+        }
+        
+        const SOGLIA_SECONDI = 150; // 2:30 minuti
+        let giaSalvato = false;
+
+        const video = document.getElementById('mainVideo');
+
+        video.addEventListener('timeupdate', function() {
+            if (giaSalvato) return; // già salvato, non ricontrollare ad ogni tick
+
+            if (video.currentTime >= SOGLIA_SECONDI) {
+                giaSalvato = true;
+
+                let url = window.location.href;
+                url = url.split("play/").at(-1);
+                let last = { "url": url, "title": "{{ title }}" };
+                console.log("Soglia raggiunta, salvo in history:", last);
+
+                addToHistory(last);
+            }
+        });
     </script>
 </body>
 </html>
