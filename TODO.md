@@ -1,5 +1,3 @@
-fixa parti in anicli (tipo drstone s3 pt2, deve andare nella cartella della 3)
-
 aggiungi il latest su main
 
 quando premi x nel continua a guardare non ricaricare la pagina ma fai da js

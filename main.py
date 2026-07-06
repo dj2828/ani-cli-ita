@@ -50,8 +50,8 @@ def path_giusto(titolo):
 
 def parse_metadata_anime(titolo_originale, ani_id):
     """
-    Estrae Nome, Stagione, Lingua e ani_id.
-    Return: (serie_name, season, lang, ani_id)
+    Estrae Nome, Stagione, Lingua, ani_id e parte.
+    Return: (serie_name, season, lang, ani_id, parte)
     """
     def trova_stagione_1(titolo, db):
         titolo_pulito = titolo.replace(" (ITA)", "").strip()
@@ -70,6 +70,13 @@ def parse_metadata_anime(titolo_originale, ani_id):
     # 1. Rileva la lingua
     lang = "ITA" if "(ITA)" in titolo_originale else "SUB"
     titolo_senza_lang = titolo_originale.replace(" (ITA)", "").strip()
+
+    # 2. Rileva e rimuove "Part N" PRIMA di cercare la stagione
+    parte = None
+    match_part = re.search(r"\s+Part\s+(\d+)$", titolo_senza_lang, re.IGNORECASE)
+    if match_part:
+        parte = int(match_part.group(1))
+        titolo_senza_lang = titolo_senza_lang[:match_part.start()].strip()
     
     # 2. Logica esistente per la stagione
     season = 1
@@ -87,9 +94,7 @@ def parse_metadata_anime(titolo_originale, ani_id):
     if stagione_1:
         serie_name = stagione_1
 
-    input(f"\nSerie: {serie_name}\nStagione: {season}\nLingua: {lang}\nAiring: {'In Corso' if airing else 'Concluso'}\n\nPremi invio per continuare...")
-
-    return serie_name, season, lang, airing
+    return serie_name, season, lang, airing, parte
 
 def get_info(id):
     api = f"https://api.jikan.moe/v4/anime/{id}"
@@ -244,13 +249,15 @@ def carica(url):
     proc.wait()
 
 def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
-    def chiedi_info_a_utente(guess_serie, ani_id, guess_season, guess_status):
+    def chiedi_info_a_utente(guess_serie, ani_id, guess_season, guess_status, guess_parte):
         guess_status_str = "In Corso" if guess_status else "Concluso"
         print("\nDati rilevati:")
         print(f"Serie: {guess_serie}" + (" - ATTENZIONE - se vuoi che finiscano nella stessa cartella scrivi lo stesso nome di serie della cartella gia presente." if guess_season != 1 else ""))
         print(f"MAL ID (https://myanimelist.net/anime/{ani_id}): {ani_id}")
         print(f"Stagione: {guess_season}")
         print(f"Stato: {guess_status_str}")
+        if guess_parte:
+            print(f"Parte: {guess_parte}")
 
         conferma = prompt([
             {
@@ -293,20 +300,33 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
                 }
             ]
 
+            if guess_parte:
+                q_meta.append({
+                    "type": "input",
+                    "name": "parte",
+                    "message": "Numero Parte:",
+                    "default": str(guess_parte),
+                    "validate": lambda x: x.isdigit(),
+                    "filter": lambda x: int(x)
+                })
+
+
             meta = prompt(q_meta)
 
             serie_name = meta["serie"]
             ani_id = meta["mal_id"]
             season = meta["season"]
             status = True if meta["status"] == "In Corso" else False
+            parte = meta.get("parte", None)
 
         else:
             # usa i valori automatici
             serie_name = guess_serie
             season = guess_season
             status = guess_status
+            parte = guess_parte
 
-        return serie_name, season, status, ani_id
+        return serie_name, season, status, ani_id, parte
     """
     Gestisce il salvataggio strutturato per Jellyfin e aggiorna il DB locale.
     """
@@ -317,14 +337,14 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     ani_id = get_mal_id_from_url(anime_url)
 
     # 1. Indovina i metadati
-    guess_serie, guess_season, guess_lang, airing = parse_metadata_anime(titolo_completo, ani_id)
+    guess_serie, guess_season, guess_lang, airing, parte = parse_metadata_anime(titolo_completo, ani_id)
     print(f"\nConfigurazione salvataggio per: {titolo_completo}")
 
     if guess_lang == "ITA":
         guess_serie = f"{guess_serie} (ITA)"
 
     # 2. Chiedi conferma all'utente (InquirerPy)
-    serie, season, airing, ani_id = chiedi_info_a_utente(guess_serie, ani_id, guess_season, airing)
+    serie, season, airing, ani_id, parte = chiedi_info_a_utente(guess_serie, ani_id, guess_season, airing, parte)
 
     serie_path = path_giusto(serie)
     season_path = f"Season {season:02d}"
@@ -333,7 +353,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     os.makedirs(full_path, exist_ok=True)
 
     # 3. Salva nel DB
-    db_key = f"{serie_path}_S{season}"
+    db_key = f"{serie_path}_S{season}" + ( f"_P{parte}" if parte else "")
     db[db_key] = {
         "serie_name": serie,
         "ani_id": ani_id,
@@ -344,6 +364,10 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
         "last_ep_downloaded": []
     }
 
+    parte_da = 0
+    if parte:
+        parte_da = max(int(ep.replace("E", "").replace(".strm", "")) for ep in os.listdir(full_path))
+
     # 4. Scarica i file .strm
     print(f"\nSalvataggio collegamenti in: {full_path}")
     progress = tqdm(total=len(episodi_dict), desc="Creazione .strm", unit="ep")
@@ -351,7 +375,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     nuovi_ep = []
     
     for ep_num, link in episodi_dict.items():
-        filename = f"E{ep_num}.strm" if ep_num.isdigit() else f"{ep_num}.strm"
+        filename = f"E{int(ep_num) + parte_da}.strm"
         filepath = os.path.join(full_path, filename)
         
         # Evita di rifare richieste se il file esiste
@@ -360,7 +384,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
             if real_url:
                 with open(filepath, "w") as f:
                     f.write(real_url)
-                nuovi_ep.append(ep_num)
+                nuovi_ep.append(int(ep_num) + parte_da)
         
         progress.update(1)
     
@@ -400,19 +424,23 @@ def aggiorna_libreria():
         os.makedirs(path_dest, exist_ok=True)
         
         downloaded = set(data['last_ep_downloaded'])
+
+        parte_da = 0
+        if "_P" in key:
+            parte_da = max(int(ep.replace("E", "").replace(".strm", "")) for ep in os.listdir(path_dest))
         
         for ep_num, link in episodi_online.items():
             # Controllo brutale: se non l'abbiamo nella lista o il file non c'è
-            filename = f"E{ep_num}.strm" if ep_num.isdigit() else f"{ep_num}.strm"
+            filename = f"E{int(ep_num) + parte_da}.strm"
             filepath = os.path.join(path_dest, filename)
             
-            if ep_num not in downloaded or not os.path.exists(filepath):
-                print(f" -> Nuovo episodio trovato: {ep_num}")
+            if ep_num + parte_da not in downloaded or not os.path.exists(filepath):
+                print(f" -> Nuovo episodio trovato: {ep_num + parte_da}")
                 real_url = get_real_video_url(BASE_URL + link)
                 if real_url:
                     with open(filepath, "w") as f:
                         f.write(real_url)
-                    db[key]["last_ep_downloaded"].append(ep_num)
+                    db[key]["last_ep_downloaded"].append(ep_num + parte_da)
                     count_new += 1
 
     # controllo se ancora ongoing
