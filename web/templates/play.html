@@ -82,6 +82,7 @@
     </div>
 
     <script>
+        // tasto indietro
         let indietro = document.getElementById('indietro');
         const q = localStorage.getItem("return");
         if (q) {
@@ -90,6 +91,7 @@
             indietro.ritorna = "../../"
         }
 
+        // history
         function setCookie(nome, valore, giorni = 365) {
             const scadenza = new Date();
             scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
@@ -149,9 +151,7 @@
         
         const SOGLIA_SECONDI = 150; // 2:30 minuti
         let giaSalvato = false;
-
         const video = document.getElementById('mainVideo');
-
         video.addEventListener('timeupdate', function() {
             if (giaSalvato) return; // già salvato, non ricontrollare ad ogni tick
 
@@ -165,6 +165,29 @@
 
                 addToHistory(last);
             }
+        });
+
+        // resume
+        const storageKey = 'video-progress: {{ title }}';
+
+        // Ripristina la posizione salvata
+        video.addEventListener('loadedmetadata', () => {
+            const savedTime = localStorage.getItem(storageKey);
+            if (savedTime) {
+                video.currentTime = parseFloat(savedTime);
+            }
+        });
+        // Salva la posizione periodicamente durante la riproduzione
+        let lastSave = 0;
+        video.addEventListener('timeupdate', () => {
+            if (video.currentTime - lastSave > 5) { // salva ogni 5 secondi
+                localStorage.setItem(storageKey, video.currentTime);
+                lastSave = video.currentTime;
+            }
+        });
+        // Quando il video finisce, rimuovi il salvataggio
+        video.addEventListener('ended', () => {
+            localStorage.removeItem(storageKey);
         });
     </script>
 </body>
