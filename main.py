@@ -53,27 +53,42 @@ def parse_metadata_anime(titolo_originale, ani_id):
     Estrae Nome, Stagione, Lingua e ani_id.
     Return: (serie_name, season, lang, ani_id)
     """
-    # 1. Rileva la lingua
-    lang = "ITA" if "(ITA)" in titolo_originale else "SUB"
-    
-    # 2. Logica esistente per la stagione
-    season = 1
-
-    match_season = re.search(r"(?:Season\s+(\d+)|(\d+)(?:st|nd|rd|th)?\s+Season)", titolo_originale, re.IGNORECASE)
-    
-    if match_season:
-        season = int(match_season.group(1) or match_season.group(2))
-    else:
-        match_num = re.search(r"\s(\d+)$", titolo_originale)
-        if match_num:
-            season = int(match_num.group(1))
+    def trova_stagione_1(titolo, db):
+        titolo_pulito = titolo.replace(" (ITA)", "").strip()
+        for key, _ in db.items():
+            key_pulita = key.replace(" (ITA)", "").replace(" (CR)", "").strip()
+            if key_pulita == f"{titolo_pulito}_S1":
+                return key_pulita.replace("_S1", "")
+        return None
     
     data = get_info(ani_id)
 
     serie_name = data.get("title_english")
     if not serie_name: serie_name = data.get("title")
     airing = data.get("airing")
+
+    # 1. Rileva la lingua
+    lang = "ITA" if "(ITA)" in titolo_originale else "SUB"
+    titolo_senza_lang = titolo_originale.replace(" (ITA)", "").strip()
     
+    # 2. Logica esistente per la stagione
+    season = 1
+
+    match_season = re.search(r"^(.*?)\s+(\d+)$", titolo_senza_lang) # "Dr. Stone 2"
+    
+    if match_season:
+        titolo_no_numero = match_season.group(1) # "Dr. Stone"
+        season = int(match_season.group(2)) # "2"
+    else:
+        titolo_no_numero = serie_name
+
+    stagione_1 = trova_stagione_1(titolo_no_numero, load_db())
+
+    if stagione_1:
+        serie_name = stagione_1
+
+    input(f"\nSerie: {serie_name}\nStagione: {season}\nLingua: {lang}\nAiring: {'In Corso' if airing else 'Concluso'}\n\nPremi invio per continuare...")
+
     return serie_name, season, lang, airing
 
 def get_info(id):
