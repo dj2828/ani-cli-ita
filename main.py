@@ -487,7 +487,7 @@ def ensure_syncplay():
         download_url = None
         for asset in assets:
             name = asset["name"]
-            if apt and name.endswith(".deb"):
+            if apt and name.endswith(".deb") and "server" not in name.lower():
                 download_url = asset["browser_download_url"]
                 print(f"✅ Trovato pacchetto apt: {name}")
                 break
@@ -528,15 +528,18 @@ def ensure_syncplay():
         if which("pacman"):
             os.system("sudo pacman -S syncplay --noconfirm")
         elif which("apt"):
-            down_syncplay(apt=linux)
+            down_syncplay(apt=True)
             os.system("sudo apt install ./syncplay.deb -y")
             os.remove("syncplay.deb")
-        os.system("pip install twisted")
+        os.system(
+            "pip install --break-system-packages "
+            "twisted certifi service_identity 'pyopenssl<24' idna pem"
+        )
         return which("syncplay")
 
     # Scarica syncplay
     print("Download di syncplay in corso...")
-    down_syncplay(apt=linux)
+    down_syncplay(apt=False)
 
     os.makedirs("syncplay", exist_ok=True)
 
@@ -672,8 +675,8 @@ def scegli_ep(next_ep=False, ricarica=False):
         pass
     else:
         ep_choices = []
-        ep_choices.append(Choice(value="jelly", name=f"▶️  Aggiungi a Jellyfin"))
         if not syncplay:
+            ep_choices.append(Choice(value="jelly", name=f"▶️  Aggiungi a Jellyfin"))
             ep_choices.append(Choice(value="sync", name=f"🔗 Avvia Syncplay"))
         ep_choices += [Choice(value=link, name=f"Episodio {i+1}: {nome}") for i, (nome, link) in enumerate(episodi.items())]
         questions = [
@@ -695,8 +698,6 @@ def scegli_ep(next_ep=False, ricarica=False):
                 syncplay = True
                 syncplay_config()
                 os.system('cls' if os.name == 'nt' else 'clear')
-                print("Scegli l'episodio da guardare.")
-                sleep(2)
                 scegli_ep()
                 return
 
