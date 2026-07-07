@@ -726,7 +726,7 @@ def carica_preferiti():
                     preferiti[nome] = link
         return preferiti
     else:
-        return None
+        return {}
 
 def salva_preferito():
     global anime_scelto, url_scelto
