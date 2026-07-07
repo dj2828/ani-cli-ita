@@ -531,10 +531,7 @@ def ensure_syncplay():
             down_syncplay(apt=True)
             os.system("sudo apt install ./syncplay.deb -y")
             os.remove("syncplay.deb")
-        os.system(
-            "pip install --break-system-packages "
-            "twisted certifi service_identity 'pyopenssl<24' idna pem"
-        )
+        os.system("pip install --break-system-packages twisted")
         return which("syncplay")
 
     # Scarica syncplay
