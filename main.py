@@ -145,7 +145,7 @@ def cerca_ep(url):
                 for li in ul.find_all("li"):
                     a = li.find("a")
                     if a and a.text.strip():
-                        episodi[a.text.strip()] = a['href']
+                        episodi[int(a.text.strip())] = a['href']
         return episodi
     else:
         print("Errore nella richiesta")
@@ -375,7 +375,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     nuovi_ep = []
     
     for ep_num, link in episodi_dict.items():
-        filename = f"E{int(ep_num) + parte_da}.strm"
+        filename = f"E{ep_num + parte_da}.strm"
         filepath = os.path.join(full_path, filename)
         
         # Evita di rifare richieste se il file esiste
@@ -384,7 +384,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
             if real_url:
                 with open(filepath, "w") as f:
                     f.write(real_url)
-                nuovi_ep.append(int(ep_num) + parte_da)
+                nuovi_ep.append(ep_num + parte_da)
         
         progress.update(1)
     
@@ -431,7 +431,7 @@ def aggiorna_libreria():
         
         for ep_num, link in episodi_online.items():
             # Controllo brutale: se non l'abbiamo nella lista o il file non c'è
-            filename = f"E{int(ep_num) + parte_da}.strm"
+            filename = f"E{ep_num + parte_da}.strm"
             filepath = os.path.join(path_dest, filename)
             
             if ep_num + parte_da not in downloaded or not os.path.exists(filepath):
