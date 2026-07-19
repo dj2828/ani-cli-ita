@@ -258,6 +258,8 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
         print(f"Stato: {guess_status_str}")
         if guess_parte:
             print(f"Parte: {guess_parte}")
+        else:
+            guess_parte = 1
 
         conferma = prompt([
             {
@@ -297,18 +299,16 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
                     "name": "status",
                     "choices": ["In Corso", "Concluso"],
                     "default": guess_status_str
-                }
-            ]
-
-            if guess_parte:
-                q_meta.append({
+                },
+                {
                     "type": "input",
                     "name": "parte",
-                    "message": "Numero Parte:",
+                    "message": "Numero Parte (0/1 è la prima parte/non ci sono parti):",
                     "default": str(guess_parte),
                     "validate": lambda x: x.isdigit(),
                     "filter": lambda x: int(x)
-                })
+                }
+            ]
 
 
             meta = prompt(q_meta)
@@ -317,7 +317,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
             ani_id = meta["mal_id"]
             season = meta["season"]
             status = True if meta["status"] == "In Corso" else False
-            parte = meta.get("parte", None)
+            parte = meta["parte"] if meta["parte"] > 1 else None
 
         else:
             # usa i valori automatici
@@ -377,6 +377,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     for ep_num, link in episodi_dict.items():
         filename = f"E{ep_num + parte_da}.strm"
         filepath = os.path.join(full_path, filename)
+        print(f"Creazione file: {filename}...")
         
         # Evita di rifare richieste se il file esiste
         if not os.path.exists(filepath):
