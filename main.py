@@ -365,6 +365,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     parte_da = 0
     if parte:
         parte_da = max(int(ep.replace("E", "").replace(".strm", "")) for ep in os.listdir(full_path))
+        db[db_key]["parte_da"] = parte_da
 
     # 4. Scarica i file .strm
     print(f"\nSalvataggio collegamenti in: {full_path}")
@@ -425,7 +426,7 @@ def aggiorna_libreria():
 
         parte_da = 0
         if "_P" in key:
-            parte_da = max(int(ep.replace("E", "").replace(".strm", "")) for ep in os.listdir(path_dest))
+            parte_da = data['parte_da']
         
         for ep_num, link in episodi_online.items():
             # Controllo brutale: se non l'abbiamo nella lista o il file non c'è
