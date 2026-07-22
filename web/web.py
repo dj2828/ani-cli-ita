@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from flask import Flask, Blueprint, render_template, request, redirect, url_for
 from urllib.parse import unquote
 import os, sys, importlib.util, json
