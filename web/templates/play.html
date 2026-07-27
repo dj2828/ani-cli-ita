@@ -72,7 +72,7 @@
         
         <div id="ep-container">
             {% for episode, url in ep.items() %}
-                <div class="ep {% if episode == current_ep %}active{% endif %}">
+                <div class="ep {% if episode|int == current_ep %}active{% endif %}">
                    <a data-url="{{ url }}" data-ep="{{ episode }}" onclick="changeEp(this)">{{ episode }}</a>
                 </div>
             {% endfor %}
@@ -87,9 +87,9 @@
         let indietro = document.getElementById('indietro');
         const q = localStorage.getItem("return");
         if (q) {
-            indietro.ritorna = "../../?q=" + q;
+            indietro.ritorna = "../?q=" + q;
         } else {
-            indietro.ritorna = "../../"
+            indietro.ritorna = "../";
         }
 
         // history
