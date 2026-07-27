@@ -82,7 +82,7 @@
                 {% for item in continua %}
                 <div class="anime">
                     <a href="play/{{ item.url }}">
-                        <img src="{{ url_for('ani.img_anime', anime=item.url.split('/')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                        <img src="{{ url_for('ani.img_anime', anime=item.url.split('?')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
                         <p>{{ item.title }}</p>
                         <div onclick="
                                 event.stopPropagation();

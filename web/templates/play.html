@@ -6,9 +6,6 @@
     <title>Ani-CLI - {{ title }}</title>
     <link rel="stylesheet" href="/static/ani.css">
     <style>
-        body{
-            overflow: hidden;
-        }
         #container {
             padding: 0;
             margin: 0;
@@ -21,8 +18,6 @@
         #ep-container{
             display: flex;
             margin: 20px;
-            border-radius: 20px;
-            overflow: hidden;
             flex-wrap: wrap;
         }
         .ep{
@@ -30,6 +25,8 @@
             background-color: var(--primary-color);
             cursor: pointer;
             transition: background-color 0.3s;
+            border-radius: 10px;
+            margin: 5px;
         }
         .ep a{
             text-decoration: none;
@@ -67,21 +64,25 @@
 <body>
     <div class="button" onclick="location.href=this.ritorna" id="indietro" style="position: fixed;">Indietro</div>
     <div id="container">
+        <h2 style="margin-bottom: 40px;">{{ title }}</h2>
+
         <video controls style="aspect-ratio: 16/9;" id="mainVideo" autoplay>
-            <source src="{{ video_url }}" type="video/mp4">
+            <source src="" type="video/mp4">
         </video>
         
         <div id="ep-container">
             {% for episode, url in ep.items() %}
-                <div class="ep{% if episode == current_ep %} active{% endif %}">
-                   <a href="{{ url_for('ani.play', ep_url=url.split('/play/')[-1]) }}?ep={{ episode }}&title={{ title.split(' - ')[0] }} - {{ episode }}">{{ episode }}</a>
+                <div class="ep {% if episode == current_ep %}active{% endif %}">
+                   <a data-url="{{ url }}" data-ep="{{ episode }}" onclick="changeEp(this)">{{ episode }}</a>
                 </div>
             {% endfor %}
         </div>
-        <a href="{{ video_url }}" target="_blank" style="text-decoration: none;"><div class="button">Scarica Video</div></a>
+        <a href="" target="_blank" style="text-decoration: none;" id="down_vid"><div class="button">Scarica Video</div></a>
     </div>
 
     <script>
+        let current_ep = "{{ current_ep }}";
+
         // tasto indietro
         let indietro = document.getElementById('indietro');
         const q = localStorage.getItem("return");
@@ -160,7 +161,7 @@
 
                 let url = window.location.href;
                 url = url.split("play/").at(-1);
-                let last = { "url": url, "title": "{{ title }}" };
+                let last = { "url": url, "title": "{{ title }} - " + current_ep };
                 console.log("Soglia raggiunta, salvo in history:", last);
 
                 addToHistory(last);
@@ -168,7 +169,7 @@
         });
 
         // resume
-        const storageKey = 'video-progress: {{ title }}';
+        let storageKey = 'video-progress: {{ title }} - ' + current_ep;
 
         // Ripristina la posizione salvata
         video.addEventListener('loadedmetadata', () => {
@@ -189,6 +190,38 @@
         video.addEventListener('ended', () => {
             localStorage.removeItem(storageKey);
         });
+
+
+        // change ep
+        function changeEp(element) {
+            const epUrl = element.getAttribute('data-url');
+            current_ep = element.getAttribute('data-ep');
+
+            const url = new URL(window.location.href);
+            url.searchParams.set("ep", current_ep); // Sostituisce o aggiunge "ep" in modo sicuro
+            window.history.pushState({}, '', url); // cambia url senza reload
+            
+            document.querySelectorAll('div.active').forEach(el => {
+                el.classList.remove('active');
+            });
+            element.parentElement.classList.add("active");
+
+            storageKey = 'video-progress: {{ title }} - ' + current_ep;
+
+            giaSalvato = false; // per history
+
+            document.getElementById("down_vid").href = epUrl;
+            video.src = epUrl;
+            video.load();
+        }
+
+        const episodi = {{ ep | tojson }};
+
+        setCookie("{{ title }}", JSON.stringify(episodi))
+
+        video.src = episodi["{{ current_ep }}"];
+        video.load();
+
     </script>
 </body>
 </html>

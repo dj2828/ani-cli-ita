@@ -55,14 +55,24 @@ def img_anime(anime):
 
 @blueprint.route('/play/<path:ep_url>')
 def play(ep_url):
-    episodi = getEpisodi(ep_url)
     title = request.args.get("title")
-    if '/' not in ep_url:
-        first_url = list(episodi.values())[0]
-        return redirect(url_for('ani.play', ep_url=ep_url) + "/" + first_url.split('/')[-1] + "?ep=1" + "&title=" + title + " - 1")
-    ep = request.args.get("ep")
-    url = ani.get_real_video_url(ep_url)
-    return render_template(f'{T}play.html', video_url=url, ep=episodi, current_ep=ep, title=title)
+    ep = request.args.get("ep", 1)
+    episodi = getEpisodi(ep_url)
+
+    raw_cookie = request.cookies.get(title)
+    cookie = json.loads(unquote(raw_cookie)) if raw_cookie else None
+    if cookie:
+        if str(max(episodi.keys())) != max(cookie.keys(), key=int, default=None):
+            for num, url in episodi.items():
+                if str(num) in cookie:
+                    continue
+                cookie[str(num)] = ani.get_real_video_url(url)
+        episodi = cookie
+    else:
+        for num, url in episodi.items():
+            episodi[num] = ani.get_real_video_url(url)
+    
+    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, title=title)
 
 @blueprint.post('/prefe')
 def prefe():
