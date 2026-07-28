@@ -193,6 +193,7 @@
 
 
         // change ep
+        let down_tasto = document.getElementById("down_vid");
         function changeEp(element) {
             const epUrl = element.getAttribute('data-url');
             current_ep = element.getAttribute('data-ep');
@@ -210,7 +211,7 @@
 
             giaSalvato = false; // per history
 
-            document.getElementById("down_vid").href = epUrl;
+            down_tasto.href = epUrl;
             video.src = epUrl;
             video.load();
         }
@@ -219,6 +220,7 @@
 
         setCookie("{{ title }}", JSON.stringify(episodi))
 
+        down_tasto.href = episodi["{{ current_ep }}"];
         video.src = episodi["{{ current_ep }}"];
         video.load();
 
