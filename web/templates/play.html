@@ -72,7 +72,7 @@
         
         <div id="ep-container">
             {% for episode, url in ep.items() %}
-                <div class="ep {% if episode|int == current_ep %}active{% endif %}">
+                <div class="ep {% if episode|int == current_ep|int %}active{% endif %}">
                    <a data-url="{{ url }}" data-ep="{{ episode }}" onclick="changeEp(this)">{{ episode }}</a>
                 </div>
             {% endfor %}
