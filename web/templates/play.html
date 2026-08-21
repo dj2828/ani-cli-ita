@@ -77,11 +77,13 @@
                 </div>
             {% endfor %}
         </div>
+        <div class="button" onclick="toggleSkipIntro(); this.querySelector('input').checked = skip_intro">Skip Intro<input type="checkbox" style="margin-left: 5px;"></div>
         <a href="" target="_blank" style="text-decoration: none;" id="down_vid"><div class="button">Scarica Video</div></a>
     </div>
 
     <script>
         let current_ep = "{{ current_ep }}";
+        const ani_id = "{{ ani_id }}";
 
         // tasto indietro
         let indietro = document.getElementById('indietro');
@@ -211,6 +213,8 @@
 
             giaSalvato = false; // per history
 
+            initSkipIntro(); // re-inizializza skip intro per il nuovo episodio
+
             down_tasto.href = epUrl;
             video.src = epUrl;
             video.load();
@@ -224,6 +228,54 @@
         video.src = episodi["{{ current_ep }}"];
         video.load();
 
+
+        // skip intro
+        let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : true;
+        let opInterval = null;
+        let edInterval = null;
+        document.querySelector('.button input').checked = skip_intro;
+        function toggleSkipIntro() {
+            skip_intro = !skip_intro;
+            localStorage.setItem("skip_intro", skip_intro.toString());
+        }
+        function initSkipIntro() {
+            const url_skip_intro = `https://api.aniskip.com/v1/skip-times/${ani_id}/${current_ep}?types=op&types=ed`;
+            fetch(url_skip_intro)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.found && Array.isArray(data.results)) {
+                        const op = data.results.find(item => item.skip_type === 'op');
+                        const ed = data.results.find(item => item.skip_type === 'ed');
+
+                        // Estrai gli intervalli
+                        opInterval = op ? [op.interval.start_time, op.interval.end_time] : null;
+                        edInterval = ed ? [ed.interval.start_time, ed.interval.end_time] : null;
+
+                        // Aggiungi 5 secondi all'inizio e sottrai 5 secondi alla fine
+                        opInterval = [opInterval[0] + 5, opInterval[1] - 10]; 
+                        edInterval = [edInterval[0] + 5, edInterval[1] - 5];
+
+                        const opStartMin = `${Math.floor(opInterval[0] / 60)}:${Math.floor(opInterval[0] % 60).toString().padStart(2, '0')}`;
+                        const opEndMin = `${Math.floor(opInterval[1] / 60)}:${Math.floor(opInterval[1] % 60).toString().padStart(2, '0')}`;
+                        console.log(`OP: da ${opStartMin} a ${opEndMin}`);
+                        
+                        const edStartMin = `${Math.floor(edInterval[0] / 60)}:${Math.floor(edInterval[0] % 60).toString().padStart(2, '0')}`;
+                        const edEndMin = `${Math.floor(edInterval[1] / 60)}:${Math.floor(edInterval[1] % 60).toString().padStart(2, '0')}`;
+                        console.log(`ED: da ${edStartMin} a ${edEndMin}`);
+                    }
+                })
+                .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
+        }
+        initSkipIntro();
+        video.addEventListener('timeupdate', () => {
+            if (!skip_intro) return; // se skip_intro è disattivato, non fare nulla
+            if (opInterval && video.currentTime >= opInterval[0] && video.currentTime <= opInterval[1]) {
+                video.currentTime = opInterval[1];
+            }
+            if (edInterval && video.currentTime >= edInterval[0] && video.currentTime <= edInterval[1]) {
+                video.currentTime = edInterval[1];
+            }
+        });
     </script>
 </body>
 </html>

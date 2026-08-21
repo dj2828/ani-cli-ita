@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from flask import Flask, Blueprint, render_template, request, redirect, url_for
+from flask import Flask, Blueprint, render_template, request, redirect
 from urllib.parse import unquote
 import os, sys, importlib.util, json
 sys.dont_write_bytecode = True
@@ -58,6 +58,7 @@ def play(ep_url):
     title = request.args.get("title")
     ep = request.args.get("ep", 1)
     episodi = getEpisodi(ep_url)
+    ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{ep_url}")
 
     raw_cookie = request.cookies.get(title)
     cookie = json.loads(unquote(raw_cookie)) if raw_cookie else None
@@ -72,7 +73,7 @@ def play(ep_url):
         for num, url in episodi.items():
             episodi[num] = ani.get_real_video_url(url)
     
-    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, title=title)
+    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, title=title, ani_id=ani_id)
 
 @blueprint.post('/prefe')
 def prefe():
