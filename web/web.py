@@ -39,21 +39,21 @@ def getHistoryWatched():
     history = json.loads(unquote(raw)) if raw else None
     return history
 
-blueprint = Blueprint('ani', __name__, url_prefix='/ani')
+web = Blueprint('ani', __name__)
 
-@blueprint.route('/')
+@web.route('/')
 def index():
     if q := request.args.get("q"):
         risultati = ani.cerca_nome(q) if q else {}
         return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
     return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getHistoryWatched())
 
-@blueprint.get('/img/<anime>')
+@web.get('/img/<anime>')
 def img_anime(anime):
     anime_id = anime.split('.')[-1]
     return redirect(f"https://img.animeworld.ac/locandine/{anime_id}.jpg")
 
-@blueprint.route('/play/<path:ep_url>')
+@web.route('/play/<path:ep_url>')
 def play(ep_url):
     title = request.args.get("title")
     ep = request.args.get("ep", 1)
@@ -75,7 +75,7 @@ def play(ep_url):
     
     return render_template(f'{T}play.html', ep=episodi, current_ep=ep, title=title, ani_id=ani_id)
 
-@blueprint.post('/prefe')
+@web.post('/prefe')
 def prefe():
     url = request.form.get('url')
     nome = request.form.get('nome')
@@ -100,5 +100,5 @@ if __name__ == '__main__':
     # se eseguito standalone lo importa come se fosse un bluprint (quindi è tutto un bluprint)
     app = Flask(__name__)
     app.secret_key = "S4Ss0"
-    app.register_blueprint(blueprint, url_prefix='/')
+    app.register_blueprint(web)
     app.run(debug=True, host='0.0.0.0', port=8080)
