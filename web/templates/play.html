@@ -62,7 +62,7 @@
     </style>
 </head>
 <body>
-    <div class="button" onclick="location.href=this.ritorna" id="indietro" style="position: fixed;">Indietro</div>
+    <a href="" id="indietro"><div class="button" style="position: fixed;">Indietro</div></a>
     <div id="container">
         <h2 style="margin-bottom: 40px;">{{ title }}</h2>
 
@@ -87,9 +87,9 @@
         let indietro = document.getElementById('indietro');
         const q = localStorage.getItem("return");
         if (q) {
-            indietro.ritorna = "../?q=" + q;
+            indietro.href = "../?q=" + q;
         } else {
-            indietro.ritorna = "../";
+            indietro.href = "../";
         }
 
         // history
