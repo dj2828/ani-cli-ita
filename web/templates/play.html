@@ -183,7 +183,7 @@
         // Salva la posizione periodicamente durante la riproduzione
         let lastSave = 0;
         video.addEventListener('timeupdate', () => {
-            if (video.currentTime - lastSave > 5) { // salva ogni 5 secondi
+            if (Math.abs(video.currentTime - lastSave) > 5) { // salva ogni 5 secondi
                 localStorage.setItem(storageKey, video.currentTime);
                 lastSave = video.currentTime;
             }
