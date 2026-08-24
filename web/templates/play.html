@@ -193,10 +193,22 @@
             localStorage.removeItem(storageKey);
         });
 
+        async function getRealVideoUrl(epUrl) {
+            const response = await fetch(`/realUrl/${epUrl}`);
+            const data = await response.json();
+            console.log("Video reale recuperato:", data.url);
+            return data.url;
+        }
+        async function loadVideo(url) {
+            const realUrl = await getRealVideoUrl(url);
+            down_tasto.href = realUrl;
+            video.src = realUrl;
+            video.load();
+        }
 
         // change ep
         let down_tasto = document.getElementById("down_vid");
-        function changeEp(element) {
+        async function changeEp(element) {
             const epUrl = element.getAttribute('data-url');
             current_ep = element.getAttribute('data-ep');
 
@@ -215,19 +227,12 @@
 
             initSkipIntro(); // re-inizializza skip intro per il nuovo episodio
 
-            down_tasto.href = epUrl;
-            video.src = epUrl;
-            video.load();
+            loadVideo(epUrl);
         }
 
         const episodi = {{ ep | tojson }};
 
-        setCookie("{{ title }}", JSON.stringify(episodi))
-
-        down_tasto.href = episodi["{{ current_ep }}"];
-        video.src = episodi["{{ current_ep }}"];
-        video.load();
-
+        loadVideo(episodi["{{ current_ep }}"]);
 
         // skip intro
         let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : true;
