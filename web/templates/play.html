@@ -194,7 +194,7 @@
         });
 
         async function getRealVideoUrl(epUrl) {
-            const response = await fetch(`./realUrl/${epUrl}`);
+            const response = await fetch('../realUrl' + epUrl);
             const data = await response.json();
             console.log("Video reale recuperato:", data.url);
             return data.url;
