@@ -101,7 +101,7 @@
                 {% for item in continua %}
                 <div class="anime">
                     <a href="play/{{ item.url }}">
-                        <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}">
+                        <img src="https://img.animeworld.ac/locandine/{{ item.url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ item.url.split('/')[-1] }}">
                         <p>{{ item.title }}</p>
                         <div onclick="
                                 event.stopPropagation();
