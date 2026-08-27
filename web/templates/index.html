@@ -73,6 +73,25 @@
             }
         }
     </style>
+    <script>
+        async function fallbackCover(img) {
+            const anime = img.dataset.anime;
+            let step = parseInt(img.dataset.step || "0");
+            
+            if (step === 0) {
+                // 1° tentativo fallito (jpg) -> prova png
+                img.dataset.step = "1";
+                const id = anime.split('.').pop();
+                img.src = `https://img.animeworld.ac/locandine/${id}.png`;
+                return;
+            }
+            else {
+                const res = await fetch(`{{ url_for('ani.img_anime_mal', anime='') }}${anime}`);
+                if (res.ok) img.src = await res.text();
+                return;
+            }
+        }
+    </script>
 </head>
 <body>
     {% if continua %}
@@ -82,7 +101,7 @@
                 {% for item in continua %}
                 <div class="anime">
                     <a href="play/{{ item.url }}">
-                        <img src="{{ url_for('ani.img_anime', anime=item.url.split('?')[0]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                        <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}">
                         <p>{{ item.title }}</p>
                         <div onclick="
                                 event.stopPropagation();
@@ -102,7 +121,7 @@
                 {% for anime_title, url in anime_prefe.items() %}
                 <div class="anime">
                     <a href="{{ url_for('ani.play', ep_url=url) }}?title={{ anime_title }}">
-                        <img src="{{ url_for('ani.img_anime', anime=url) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}">
+                        <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}">
                         <p>{{ anime_title }}</p>
                         <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
                     </a>
@@ -128,7 +147,7 @@
             {% for anime_title, url in risultati.items() %}
             <div class="anime">
                 <a href="{{ url_for('ani.play', ep_url=url.split('/')[-1]) }}?title={{ anime_title }}"><!-- split pk ritorna play/... -->
-                    <img src="{{ url_for('ani.img_anime', anime=url.split('/')[-1]) }}" onerror="if(!this._err){this._err=1;this.src=this.src.replace('.jpg','.png')} else if(this._err==1){this._err=2; this.src=''}"> <!-- split pk ritorna play/... -->
+                    <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}"> <!-- split pk ritorna play/... -->
                     <p>{{ anime_title }}</p>
                     <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
                 </a>
@@ -178,7 +197,7 @@
             const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
             return match ? decodeURIComponent(match[2]) : null;
         }
-        function setCookie(nome, valore, giorni = 365) {
+        function setCookie(nome, valore, giorni = 9999) {
             const scadenza = new Date();
             scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
             document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;

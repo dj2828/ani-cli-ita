@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from flask import Flask, Blueprint, render_template, request, redirect, jsonify
 from urllib.parse import unquote
-import os, sys, importlib.util, json
+import os, sys, importlib.util, json, requests
 sys.dont_write_bytecode = True
 
 # import main (chiedi a claude)
@@ -48,10 +48,18 @@ def index():
         return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
     return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getHistoryWatched())
 
-@web.get('/img/<anime>')
-def img_anime(anime):
-    anime_id = anime.split('.')[-1]
-    return redirect(f"https://img.animeworld.ac/locandine/{anime_id}.jpg")
+@web.get('/img_anime_mal/<anime>')
+def img_anime_mal(anime):
+    # fallback mal
+    ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{anime}")
+    target_url = f"https://api.tenrai.org/v1/anime/{ani_id}"
+    response = requests.get(target_url, allow_redirects=True, timeout=3.0)
+    if response.status_code == 200:
+        data = response.json()
+        target_url = data['data']['images']['jpg']['image_url']
+        return target_url
+    else:
+        return "no", 404
 
 @web.route('/play/<path:ep_url>')
 def play(ep_url):
