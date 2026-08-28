@@ -98,13 +98,13 @@ def parse_metadata_anime(titolo_originale, ani_id):
     return serie_name, season, lang, airing, parte
 
 def get_info(id):
-    api = f"https://api.jikan.moe/v4/anime/{id}"
+    api = f"https://api.tenrai.org/v1/anime/{id}"
     response = requests.get(api)
     data = response.json().get("data")
     return data
 
 def get_airing(id):
-    api = f"https://api.jikan.moe/v4/anime/{id}"
+    api = f"https://api.tenrai.org/v1/anime/{id}"
     response = requests.get(api)
     return response.json().get("data").get("airing")
 
