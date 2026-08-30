@@ -4,8 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manga-CLI</title>
-    <link rel="stylesheet" href="/static/ani.css">
     <style>
+        @import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;1,500&display=swap");
+        :root {
+            --background-color: #1e1e1e;
+            --primary-color: #ff5500;
+            --secondary-color: #730000;
+
+            --text-color: white;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: "Montserrat", sans-serif;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        body {
+            background-color: var(--background-color);
+        }
         .anime {
             border-radius: 20px;
             background-color: var(--primary-color);
@@ -104,7 +121,7 @@
             <div class="container-anime">
                 {% for anime_title, data in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="{{ url_for('ani.read', manga_url=data.url) }}?title={{ anime_title }}">
+                    <a href="{{ url_for('manga.read', manga_url=data.url) }}?title={{ anime_title }}">
                         <img src="{{ data.img }}">
                         <p>{{ anime_title }}</p>
                         <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
@@ -117,7 +134,7 @@
 
     <center>
     <br><br>
-    <form action="{{ url_for('ani.index') }}" method="get">
+    <form action="{{ url_for('manga.index') }}" method="get">
         <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
         <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
@@ -130,7 +147,7 @@
         <div class="container-anime">
             {% for anime_title, data in risultati.items() %}
             <div class="anime">
-                <a href="{{ url_for('ani.read', manga_url=data.url.split('/')[-2]) }}?title={{ anime_title }}">
+                <a href="{{ url_for('manga.read', manga_url=data.url.split('/')[-2]) }}?title={{ anime_title }}">
                     <img src="{{ data.img }}">
                     <p>{{ anime_title }}</p>
                     <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url.split('/')[-2] }}', `{{ anime_title }}`, '{{ data.img }}')" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>

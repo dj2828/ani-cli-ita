@@ -4,11 +4,17 @@ from urllib.parse import unquote
 import os, sys, importlib.util, json, requests
 sys.dont_write_bytecode = True
 
-import utils as ani
+# import main (chiedi a claude)
+_main_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "utils.py")
+if not os.path.exists(_main_path):  # standalone, utils.py è una cartella su
+    _main_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".", "utils.py")
+_spec = importlib.util.spec_from_file_location("ani_utils", _main_path)
+ani = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(ani)
 
 BASE_URL = "https://www.mangaworld.mx"
 IS_STANDALONE = __name__ == '__main__'
-T = '' if IS_STANDALONE else 'ani/'
+T = '' if IS_STANDALONE else 'manga/'
 
 def getVolumi(manga_url):
     manga_url = f"{BASE_URL}/manga/{manga_url}"
@@ -27,7 +33,7 @@ def getHistoryWatched():
     history = json.loads(unquote(raw)) if raw else None
     return history
 
-web = Blueprint('ani', __name__)
+web = Blueprint('manga', __name__)
 
 @web.route('/')
 def index():
