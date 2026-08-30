@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manga-CLI - {{ title }}</title>
+    <link rel="stylesheet" href="/static/ani.css">
+    <style>
+        a {
+            text-decoration: none;
+        }
+        .cambio {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-color: black;
+            height: 50px;
+            width: 50px;
+            border-radius: 50%;
+            color: white;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: medium;
+            border: none;
+        }
+        #tasti-div {
+            position: fixed;
+            bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            width: 100dvw;
+            transform: translateY(0);
+            transition: transform ease-in-out 0.3s;
+            z-index: 67;
+        }
+        .pagine {
+            display: flex;
+            margin: 10px;
+        }
+        img {
+            height: 96dvh;
+        }
+        .button {
+            background-color: black;
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px;
+            cursor: pointer;
+            z-index: 10;
+            transform: translateY(0);
+            transition: transform ease-in-out 0.3s;
+        }
+        @media (max-width: 1050px) {
+            .pagine {
+                flex-direction: column;
+                margin: 0;
+            }
+            img {
+                margin: 10px 0;
+                height: auto;
+                max-width: 100dvw;
+            }
+
+            body.compact {
+                #tasti-div{
+                    transform: translateY(100px);
+                }
+                .button {
+                    transform: translateY(-100px);
+                }
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="tasti-div">
+        <a id="prec" class="cambio" href="?title={{ title }}&cap={{ cap|int - 1 }}">{{ cap|int - 1 }}</a>
+        <select id="select" class="cambio">
+            {% for vol_number, capitoli in volumi.items() %}
+                <optgroup label="-- {{ vol_number }} --">
+                    {% for capitolo_number, capitolo_url in capitoli.items() %}
+                        <option value="{{ capitolo_url }}" {% if capitolo_number|int == cap|int %}selected{% endif %}>{{ capitolo_number }}</option>
+                    {% endfor %}
+                </optgroup>
+            {% endfor %}
+        </select>
+        <a id="succ" class="cambio" href="?title={{ title }}&cap={{ cap|int + 1 }}">{{ cap|int + 1 }}</a>
+    </div>
+    <a href="" id="indietro"><div class="button" style="position: fixed;">Indietro</div></a>
+    <div id="container" style="display: flex; flex-direction: column; align-items: center;"></div>
+
+    <script>
+        // tasto indietro
+        let indietro = document.getElementById('indietro');
+        const q = localStorage.getItem("return");
+        if (q) {
+            indietro.href = "../?q=" + q;
+        } else {
+            indietro.href = "../";
+        }
+
+        const TITLE = "{{ title }}";
+        const CAP = "{{ cap }}";
+        let url_pagine = "{{ url_pagine }}";
+
+        const select = document.getElementById('select');
+        const img = document.getElementById('manga-image');
+
+        async function getUrlPageCap() {
+            const res = await fetch("/getUrlPagina/" + select.value);
+            const url = await res.text();
+            url_pagine = url;
+        }
+
+        select.addEventListener('change', (e) => {
+            window.location = '?title=' + TITLE + '&cap=' + e.target.options[e.target.selectedIndex].text;
+        });
+
+        let index = 1;
+        let pagineDiv = null;
+        const container = document.getElementById('container');
+        function caricaProssimaImmagine() {
+            const img = document.createElement('img');
+            const urlPng = `${url_pagine}/${index}.png`;
+            const urlJpg = `${url_pagine}/${index}.jpg`;
+
+            // Crea un nuovo div contenitore per la coppia se non esiste già
+            if (!pagineDiv) {
+                pagineDiv = document.createElement('div');
+                pagineDiv.className = "pagine";
+            }
+
+            // Funzione interna per inserire l'immagine e gestire la coppia (2 per div)
+            const gestisciSuccesso = () => {
+                const isDoublePage = img.naturalWidth > img.naturalHeight;
+
+                if (isDoublePage) {
+                    // 1. Se c'era già un'immagine spaiata in attesa di compagno, inserisci quel div prima
+                    if (pagineDiv && pagineDiv.hasChildNodes()) {
+                        container.appendChild(pagineDiv);
+                        pagineDiv = null;
+                    }
+
+                    // 2. Crea un div dedicato per la doppia pagina
+                    const doubleDiv = document.createElement('div');
+                    doubleDiv.className = "pagine";
+                    
+                    doubleDiv.appendChild(img);
+                    
+                    container.appendChild(doubleDiv);
+                } else {
+                    // Pagina singola standard
+                    if (!pagineDiv) {
+                        pagineDiv = document.createElement('div');
+                        pagineDiv.className = "pagine";
+                    }
+
+                    pagineDiv.appendChild(img);
+
+                    // Se abbiamo raggiunto 2 pagine nel contenitore, appendiamo al container
+                    if (pagineDiv.children.length === 2) {
+                        container.appendChild(pagineDiv);
+                        pagineDiv = null; // Resetta per le prossime pagine
+                    }
+                }
+
+                index++;
+                caricaProssimaImmagine(); // Passa alla pagina successiva
+            };
+
+            // Primo tentativo: PNG
+            img.src = urlPng;
+            img.onload = gestisciSuccesso;
+
+            // Se il file .png fallisce (404), tenta in .jpg
+            img.onerror = () => {
+                img.onerror = null; // Evita loop infiniti
+                img.src = urlJpg;
+                
+                // Se il caricamento JPG ha successo
+                img.onload = gestisciSuccesso;
+
+                // Se anche il file .jpg fallisce, il capitolo è finito
+                img.onerror = () => {
+                    console.log(`Caricamento completato. Fine pagine a quota: ${index - 1}`);
+
+                    // Se è rimasta 1 sola immagine spaiata nel pagineDiv finale, la appende al container
+                    if (pagineDiv && pagineDiv.hasChildNodes()) {
+                        container.appendChild(pagineDiv);
+                        pagineDiv = null;
+                    }
+
+                    setTimeout(() => {
+                        window.scrollTo(0, lastScroll);
+                    }, 100);
+                };
+            };
+        }
+        (async () => {
+            // 1. Attende che la fetch dell'URL base del capitolo sia completata
+            await getUrlPageCap();
+
+            // 2. Avvia la ricorsione per caricare tutte le immagini in sequenza
+            caricaProssimaImmagine();
+        })();
+
+        let lastScroll = localStorage.getItem(`${TITLE} scroll ${CAP}`);
+        document.addEventListener("scroll", () => { 
+            const currentScroll = window.scrollY;
+            // console.log(currentScroll);
+            if (Math.abs(lastScroll - currentScroll) < 100) return;
+            lastScroll = currentScroll;
+            localStorage.setItem(`${TITLE} scroll ${CAP}`, currentScroll);
+        }, { passive: true });
+
+        let lastScrollY = window.scrollY;
+        const DELTA = 15;
+
+        window.addEventListener(
+            "scroll",
+            () => {
+                const currentScroll = window.scrollY;
+                const diff = currentScroll - lastScrollY;
+
+                // 1. Se siamo in cima alla pagina, espandiamo sempre
+                if (currentScroll <= 20) {
+                    document.body.classList.remove("compact");
+                    lastScrollY = currentScroll;
+                    return;
+                }
+
+                // 2. Se il movimento totale non supera la soglia DELTA, ignoriamo
+                if (Math.abs(diff) < DELTA) return;
+
+                // 3. Gestione direzione dello scroll
+                if (diff > 0) {
+                    // Scorrendo verso il basso: nasconde / compatta
+                    document.body.classList.add("compact");
+                } else {
+                    // Scorrendo verso l'alto (più di DELTA px): espande
+                    document.body.classList.remove("compact");
+                }
+
+                // Aggiorniamo la posizione precedente solo quando viene superata la soglia DELTA
+                lastScrollY = currentScroll;
+            },
+            { passive: true }
+        );
+    </script>
+</body>
+</html>
