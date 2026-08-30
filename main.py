@@ -11,6 +11,7 @@ os.chdir(os.path.dirname(os.path.abspath(__file__)))
 # --- VARIABILI GLOBALI ---
 anime_scelto = ""
 url_scelto = ""
+img_anime_scelto = ""
 ep_attuale = 0
 max_ep = 0
 stop_download = False
@@ -121,14 +122,14 @@ def cerca_nome(query):
             return False
 
         # Rimuovi tutti i widget-body tranne il primo
-        widget_bodies = soup.find_all("div", class_="widget-body")
-        for wb in widget_bodies[1:]:
-            wb.decompose()
+        soup = soup.find("div", class_="film-list")
 
-        titoli = soup.find_all("a", class_="name")
+        titoli = soup.find_all("div", class_="inner")
         fatto = {}
         for titolo in titoli:
-            fatto[titolo.text.strip()] = titolo["href"]
+            a = titolo.find('a', class_="name")
+            img = titolo.find("img")["src"]
+            fatto[a.text.strip()] = {"url": a["href"], "img": img}
 
         return fatto if fatto else False
     return False
@@ -617,7 +618,7 @@ readyatstart = True
 
 def scegli_anime():
     os.system('cls' if os.name == 'nt' else 'clear')
-    global anime_scelto, url_scelto
+    global anime_scelto, url_scelto, img_anime_scelto
     try:
         questions = [
             {
@@ -635,7 +636,11 @@ def scegli_anime():
             print("Nessun risultato trovato.")
             return False
 
-        anime_choices = [Choice(value=link, name=titolo) for titolo, link in risultati.items()]
+        # Salviamo sia il titolo che il dizionario con dati (url, img) nella scelta
+        anime_choices = [
+            Choice(value={"titolo": titolo, "data": data}, name=titolo) 
+            for titolo, data in risultati.items()
+        ]
         questions = [
             {
                 "type": "list",
@@ -646,11 +651,13 @@ def scegli_anime():
         ]
         selection_result = prompt(questions)
         if not selection_result: return False
-        
-        url_scelto = BASE_URL + selection_result['anime_selection'][1:] # non prende il / iniziale a /play/...
-        # Find the key (anime title) corresponding to the selected value (link)
-        anime_scelto = next(key for key, value in risultati.items() if value == selection_result['anime_selection'])
-        print(f"Hai scelto: {anime_scelto}")
+
+        scelta = selection_result['anime_selection']
+
+        anime_scelto = scelta["titolo"]
+        url_scelto = BASE_URL + scelta["data"]["url"][1:]
+        img_anime_scelto = scelta["data"]["img"]
+        # input(f"Hai scelto: {anime_scelto,url_scelto,img_anime_scelto}")
         return True
 
     except KeyboardInterrupt:
@@ -719,16 +726,16 @@ def carica_preferiti():
             preferiti = {}
             for line in f:
                 if " - " in line:
-                    nome, link = line.strip().split(" - ", 1)
-                    preferiti[nome] = link
+                    nome, link, img = line.strip().split(" - ")
+                    preferiti[nome] = {"url": link, "img": img}
         return preferiti
     else:
         return {}
 
 def salva_preferito():
-    global anime_scelto, url_scelto
+    global anime_scelto, url_scelto, img_anime_scelto
     with open("preferiti.txt", "a") as f:
-        f.write(f"{anime_scelto} - {url_scelto}\n")
+        f.write(f"{anime_scelto} - {url_scelto} - {img_anime_scelto}\n")
     print(f"Anime '{anime_scelto}' salvato nei preferiti.")
 
 def rimuovi_preferito():
@@ -821,31 +828,6 @@ def menu_post_visione():
             print("\nUscita dal programma.")
             break
 
-def cerca_upt(percorso_base = "./down"):
-    def get_episodi_presenti(nome_path):
-        file_validi = [f for f in os.listdir(f"{percorso_base}/{nome_path}") if f.lower().endswith(('.strm', '.mp4'))]
-        # Salva il tipo dal primo elemento (se esiste)
-        tipo_file = os.path.splitext(file_validi[0])[1].replace('.', '') if file_validi else None
-        # Salva i nomi puliti
-        nomi_puliti = [os.path.splitext(f)[0].replace("E", "") for f in file_validi]
-        return nomi_puliti
-    tutti = [nome for nome in os.listdir(percorso_base) if os.path.isdir(os.path.join(percorso_base, nome))]
-
-    mancanti = {}
-    for nome_path in tutti:
-        print("Controllo:", nome_path)
-        nome, url_ani = next(iter(cerca_nome(nome_path.replace(" - ", ": ")).items()))
-        url_ani = BASE_URL + url_ani
-        episodi = cerca_ep(url_ani)
-        episodi_presenti = get_episodi_presenti(nome_path)
-        for nome_ep, url in episodi.items():
-            if nome_ep in episodi_presenti: continue
-            else:
-                if nome not in mancanti: mancanti[nome] = []  # Crea la lista per questa serie
-                mancanti[nome].append((nome_ep, BASE_URL + url))
-    return mancanti
-
-
 def main():
     global anime_scelto, url_scelto, syncplay
     
@@ -897,7 +879,7 @@ def main():
                 syncplay_config()
                 syncplay_init()
             else: # An anime from favorites was selected
-                url_scelto = scelta
+                url_scelto = scelta["url"]
                 anime_scelto = next(key for key, value in preferiti.items() if value == scelta)
                 print(f"Hai scelto: {anime_scelto}")
                 scegli_ep()

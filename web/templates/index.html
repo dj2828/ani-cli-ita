@@ -73,25 +73,6 @@
             }
         }
     </style>
-    <script>
-        async function fallbackCover(img) {
-            const anime = img.dataset.anime;
-            let step = parseInt(img.dataset.step || "0");
-            
-            if (step === 0) {
-                // 1° tentativo fallito (jpg) -> prova png
-                img.dataset.step = "1";
-                const id = anime.split('.').pop();
-                img.src = `https://img.animeworld.ac/locandine/${id}.png`;
-                return;
-            }
-            else {
-                const res = await fetch(`{{ url_for('ani.img_anime_mal', anime='') }}${anime}`);
-                if (res.ok) img.src = await res.text();
-                return;
-            }
-        }
-    </script>
 </head>
 <body>
     {% if continua %}
@@ -101,7 +82,10 @@
                 {% for item in continua %}
                 <div class="anime">
                     <a href="play/{{ item.url }}">
-                        <img src="https://img.animeworld.ac/locandine/{{ item.url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ item.url.split('/')[-1] }}">
+                        <img src="{{ item.img }}">
+                        <script>
+                            // localStorage.setItem("Img last anime","")
+                        </script>
                         <p>{{ item.title }}</p>
                         <div onclick="
                                 event.stopPropagation();
@@ -118,10 +102,10 @@
         <div class="sezione">
             <h1>⭐ Preferiti ⭐</h1>
             <div class="container-anime">
-                {% for anime_title, url in anime_prefe.items() %}
+                {% for anime_title, data in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="{{ url_for('ani.play', ep_url=url) }}?title={{ anime_title }}">
-                        <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}">
+                    <a href="{{ url_for('ani.play', anime_url=data.url) }}?title={{ anime_title }}">
+                        <img src="{{ data.img }}">
                         <p>{{ anime_title }}</p>
                         <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
                     </a>
@@ -144,12 +128,12 @@
     <div class="sezione">
         <h1>🔍 Risultati 🔍</h1>
         <div class="container-anime">
-            {% for anime_title, url in risultati.items() %}
+            {% for anime_title, data in risultati.items() %}
             <div class="anime">
-                <a href="{{ url_for('ani.play', ep_url=url.split('/')[-1]) }}?title={{ anime_title }}"><!-- split pk ritorna play/... -->
-                    <img src="https://img.animeworld.ac/locandine/{{ url.split('/')[-1].split('.')[-1] }}.jpg" onerror="fallbackCover(this)" data-anime="{{ url.split('/')[-1] }}"> <!-- split pk ritorna play/... -->
+                <a href="{{ url_for('ani.play', anime_url=data.url.split('/')[-1]) }}?title={{ anime_title }}"><!-- split pk ritorna play/... -->
+                    <img src="{{ data.img }}">
                     <p>{{ anime_title }}</p>
-                    <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
+                    <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url }}', `{{ anime_title }}`, '{{ data.img }}')" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
                 </a>
             </div>
             {% endfor %}
@@ -158,7 +142,7 @@
     {% endif %}
 
     <script>
-        async function prefe(url, nome) {
+        async function prefe(url, nome, img) {
             {% if vercel %}
             function getCookie(nome) {
                 const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
@@ -173,7 +157,7 @@
             if (nome in prefe) {
                 delete prefe[nome];
             } else {
-                prefe[nome] = url;
+                prefe[nome] = {"url": url, "img": img};
             }
             setCookie("prefe", JSON.stringify(prefe));
             location.reload();
@@ -181,6 +165,7 @@
             const formData = new FormData();
             formData.append('url', url);
             formData.append('nome', nome);
+            formData.append('img', img)
 
             const response = await fetch('{{ url_for("ani.prefe") }}', {
                 method: 'POST',
