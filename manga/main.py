@@ -55,8 +55,9 @@ def read(manga_url):
 
     return render_template(f'{T}read.html', volumi=volumi, title=title, cap=cap)
 
-@web.route('/getUrlPagina/<path:cap_url>')
-def getUrlPagina(cap_url):
+@web.route('/getUrlPagina/')
+def getUrlPagina():
+    cap_url = request.args.get('url')
     real_url = ani.getUrlPagina(cap_url)
     return real_url
 

@@ -118,13 +118,13 @@
 
         const TITLE = "{{ title }}";
         const CAP = "{{ cap }}";
-        let url_pagine = "{{ url_pagine }}";
+        let url_pagine = "";
 
         const select = document.getElementById('select');
         const img = document.getElementById('manga-image');
 
         async function getUrlPageCap() {
-            const res = await fetch("../getUrlPagina/" + select.value);
+            const res = await fetch("../getUrlPagina?url=" + encodeURIComponent(select.value));
             const url = await res.text();
             url_pagine = url;
         }
