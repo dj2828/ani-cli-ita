@@ -52,10 +52,11 @@
         }
         .pagine {
             display: flex;
+            flex-direction: row-reverse;
             margin: 10px;
         }
         img {
-            height: 96dvh;
+            height: 96vh;
         }
         .button {
             background-color: black;
@@ -67,7 +68,18 @@
             transform: translateY(0);
             transition: transform ease-in-out 0.3s;
         }
-        @media (max-width: 1050px) {
+
+        @media (max-width: 1200px) {
+            body.compact {
+                #tasti-div{
+                    transform: translateY(100px);
+                }
+                .button {
+                    transform: translateY(-100px);
+                }
+            }
+        }
+        @media (max-width: 425px) {
             .pagine {
                 flex-direction: column;
                 margin: 0;
@@ -76,15 +88,6 @@
                 margin: 10px 0;
                 height: auto;
                 max-width: 100dvw;
-            }
-
-            body.compact {
-                #tasti-div{
-                    transform: translateY(100px);
-                }
-                .button {
-                    transform: translateY(-100px);
-                }
             }
         }
     </style>
