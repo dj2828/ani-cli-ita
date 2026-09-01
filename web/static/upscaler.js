@@ -423,6 +423,25 @@ window.addEventListener('keydown', (e) => {
     }
 });
 
+function startHideTimer() {
+    clearTimeout(playerWrap.hideCursorTimer);
+    playerWrap.hideCursorTimer = setTimeout(() => {
+        if (playerWrap) {
+        mainCanvas.style.cursor = 'none';
+        controlsBar.style.opacity = '0';
+        }
+    }, 1000);
+}
+startHideTimer();
+// 1. Reset timer and reveal controls on mouse move
+playerWrap.addEventListener('mousemove', () => {
+    if (playerWrap) {
+        mainCanvas.style.cursor = 'pointer';
+        controlsBar.style.opacity = '1';
+        startHideTimer(); // Restart the 2-second countdown
+    }
+}, { passive: true });
+
 // --- Gestione Errori e Chiusura ---
 
 srcVideo.addEventListener('error', () => {
