@@ -457,5 +457,3 @@ window.addEventListener('beforeunload', () => {
         cancelAnimationFrame(animationFrameId);
     }
 });
-
-console.log('🎬 Anime4K Video Player inizializzato');

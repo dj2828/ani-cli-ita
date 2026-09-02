@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ani-CLI - {{ title }}</title>
+    <title>Ani-CLI - Playing</title>
     <script type="module" src="{{ url_for('static', filename='upscaler.js') }}"></script>
     <style>
         @import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;1,500&display=swap");
@@ -195,7 +195,7 @@
 <body>
     <a href="" id="indietro"><div class="button" style="position: fixed;">Indietro</div></a>
     <div id="container">
-        <h2 style="margin: 40px;">{{ title }}</h2>
+        <h2 style="margin: 40px;" id="title"></h2>
 
         <video controls style="aspect-ratio: 16/9;" id="mainVideo" autoplay crossorigin="anonymous">
             <source src="" type="video/mp4">
@@ -252,6 +252,8 @@
     <script>
         let current_ep = "{{ current_ep }}";
         const ani_id = "{{ ani_id }}";
+        let immagine = null;
+        let title = "";
 
         // tasto indietro
         let indietro = document.getElementById('indietro');
@@ -272,13 +274,6 @@
             const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
             return match ? decodeURIComponent(match[2]) : null;
         }
-        function getSeriesName(title) {
-            return title.replace(/\s*-\s*\d+\s*$/, "").trim();
-        }
-        function getEpisodeNumber(title) {
-            const match = title.match(/-\s*(\d+)\s*$/);
-            return match ? parseInt(match[1], 10) : null;
-        }
         function addToHistory(item, maxItems = 20) {
             let history = [];
             const raw = getCookie("history");
@@ -291,15 +286,14 @@
                 }
             }
 
-            const seriesName = getSeriesName(item.title);
-            const newEp = getEpisodeNumber(item.title);
-            item.series = seriesName;
+            const title = item.title;
+            const newEp = parseInt(item.ep);
 
             // cerca se esiste già una voce per questa serie
-            const existingIndex = history.findIndex(h => getSeriesName(h.title) === seriesName);
+            const existingIndex = history.findIndex(h => h.title === title);
 
             if (existingIndex !== -1) {
-                const existingEp = getEpisodeNumber(history[existingIndex].title);
+                const existingEp = history[existingIndex].ep;
 
                 // se il nuovo episodio non è più avanti di quello salvato, non fare nulla
                 if (existingEp !== null && newEp !== null && newEp <= existingEp) {
@@ -331,7 +325,7 @@
 
                 let url = window.location.href;
                 url = url.split("play/").at(-1);
-                let last = { "url": url, "title": "{{ title }} - " + current_ep };
+                let last = { "url": url, "title": title, "ep": current_ep, "img": immagine };
                 console.log("Soglia raggiunta, salvo in history:", last);
 
                 addToHistory(last);
@@ -339,7 +333,7 @@
         });
 
         // resume
-        let storageKey = 'video-progress: {{ title }} - ' + current_ep;
+        let storageKey = `video-progress: ${title} - ${current_ep}`;
 
         // Ripristina la posizione salvata
         video.addEventListener('loadedmetadata', () => {
@@ -364,7 +358,7 @@
         async function getRealVideoUrl(epUrl) {
             const response = await fetch('../realUrl' + epUrl);
             const data = await response.json();
-            console.log("Video reale recuperato:", data.url);
+            // console.log("Video reale recuperato:", data.url);
             return data.url;
         }
         async function loadVideo(url) {
@@ -389,7 +383,7 @@
             });
             element.parentElement.classList.add("active");
 
-            storageKey = 'video-progress: {{ title }} - ' + current_ep;
+            storageKey = `video-progress: ${title} - ${current_ep}`;
 
             giaSalvato = false; // per history
 
@@ -449,6 +443,42 @@
                 video.currentTime = edInterval[1];
             }
         });
+    
+        // get data from sessionStorage
+        function clearUrlWithoutEpisode() {
+            // /play/sono-bisque-doll-wa-koi-wo-suru-ita.7pLRj/iYNwAU --> sono-bisque-doll-wa-koi-wo-suru-ita.7pLRj
+            const urlOriginale = episodi["{{ current_ep }}"];
+            // 1. Rimuove eventuali slash a inizio/fine e divide per "/"
+            const parti = urlOriginale.replace(/^\/|\/$/g, '').split('/');
+            // 2. Prende l'elemento desiderato (in questo caso il penultimo)
+            const risultato = parti.at(-2);
+            return risultato;
+        }
+        function getAnimeDataFromSessionStorage() {
+            const storedData = sessionStorage.getItem('anime_data: ' + clearUrlWithoutEpisode());
+            if (storedData) {
+                const animeData = JSON.parse(storedData);
+                // console.log("Dati recuperati da sessionStorage:", animeData);
+                return animeData;
+            } else {
+                console.log("Nessun dato trovato in sessionStorage per l'episodio corrente.");
+                return null;
+            }
+        }
+        function initAnimeDataInSessionStorage() {
+            const data = getAnimeDataFromSessionStorage();
+            if (data === null) {
+                // se non ci sono dati, esci
+                console.error("Nessun dato trovato in sessionStorage per l'episodio corrente.");
+                return;
+            }
+            title = data.title;
+            immagine = data.img;
+
+            document.title = "Ani-CLI - " + title;
+            document.getElementById("title").textContent = title;
+        }
+        initAnimeDataInSessionStorage();
     </script>
 </body>
 </html>

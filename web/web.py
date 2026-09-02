@@ -49,17 +49,20 @@ web = Blueprint('ani', __name__)
 def index():
     if q := request.args.get("q"):
         risultati = ani.cerca_nome(q) if q else {}
+        risultati = {
+            k: {**v, 'url': v['url'].split('/')[-1]} 
+            for k, v in risultati.items()
+        }
         return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
     return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getHistoryWatched())
 
 @web.route('/play/<path:anime_url>')
 def play(anime_url):
-    title = request.args.get("title")
     ep = request.args.get("ep", 1)
     episodi = getEpisodi(anime_url)
     ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{anime_url}")
     
-    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, title=title, ani_id=ani_id)
+    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, ani_id=ani_id)
 
 @web.route('/realUrl/<path:ep_url>')
 def realUrl(ep_url):
@@ -70,6 +73,7 @@ def realUrl(ep_url):
 def prefe():
     url = request.form.get('url')
     nome = request.form.get('nome')
+    img = request.form.get('img')
     
     pref = ani.carica_preferiti()
     if not pref:
@@ -78,11 +82,10 @@ def prefe():
     if nome in pref:
         del pref[nome]
     else:
-        pref[nome] = BASE_URL + url
+        pref[nome] = {"url": BASE_URL + url, "img": img}
 
-    with open('preferiti.txt', 'w', encoding='utf-8') as f:
-        for title, link in pref.items():
-            f.write(f"{title} - {link}\n")
+    with open('preferiti.json', 'w', encoding='utf-8') as f:
+        json.dump(pref, f, indent=4)
 
     return "ok", 200
 

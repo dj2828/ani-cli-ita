@@ -721,21 +721,19 @@ def scegli_ep(next_ep=False, ricarica=False):
         carica(url_ep_scelto)
 
 def carica_preferiti():
-    if os.path.exists("preferiti.txt"):
-        with open("preferiti.txt", "r") as f:
-            preferiti = {}
-            for line in f:
-                if " - " in line:
-                    nome, link, img = line.strip().split(" - ")
-                    preferiti[nome] = {"url": link, "img": img}
+    if os.path.exists("preferiti.json"):
+        with open("preferiti.json", "r") as f:
+            preferiti = json.load(f)
         return preferiti
     else:
         return {}
 
 def salva_preferito():
     global anime_scelto, url_scelto, img_anime_scelto
-    with open("preferiti.txt", "a") as f:
-        f.write(f"{anime_scelto} - {url_scelto} - {img_anime_scelto}\n")
+    preferiti = carica_preferiti()
+    preferiti[anime_scelto] = {"url": url_scelto, "img": img_anime_scelto}
+    with open("preferiti.json", "w") as f:
+        json.dump(preferiti, f, indent=4)
     print(f"Anime '{anime_scelto}' salvato nei preferiti.")
 
 def rimuovi_preferito():
@@ -761,9 +759,8 @@ def rimuovi_preferito():
         nome_da_rimuovere = next(key for key, value in preferiti.items() if value == selection_result['anime_da_rimuovere'])
         del preferiti[nome_da_rimuovere]
 
-        with open("preferiti.txt", "w") as f:
-            for nome, link in preferiti.items():
-                f.write(f"{nome} - {link}\n")
+        with open("preferiti.json", "w") as f:
+            json.dump(preferiti, f, indent=4)
         print(f"'{nome_da_rimuovere}' rimosso dai preferiti.")
         sleep(2)
 
