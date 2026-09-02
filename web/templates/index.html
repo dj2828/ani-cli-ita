@@ -142,7 +142,7 @@
     <center>
     <br><br>
     <form action="{{ url_for('ani.index') }}" method="get">
-        <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
+        <input type="search" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
         <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
     <br><br>
