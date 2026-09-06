@@ -444,7 +444,7 @@
             }
         });
     
-        // get data from sessionStorage
+        // get data from localStorage
         function clearUrlWithoutEpisode() {
             // /play/sono-bisque-doll-wa-koi-wo-suru-ita.7pLRj/iYNwAU --> sono-bisque-doll-wa-koi-wo-suru-ita.7pLRj
             const urlOriginale = episodi["{{ current_ep }}"];
@@ -454,22 +454,22 @@
             const risultato = parti.at(-2);
             return risultato;
         }
-        function getAnimeDataFromSessionStorage() {
-            const storedData = sessionStorage.getItem('anime_data: ' + clearUrlWithoutEpisode());
+        function getAnimeDataFromLocalStorage() {
+            const storedData = localStorage.getItem('anime_data: ' + clearUrlWithoutEpisode());
             if (storedData) {
                 const animeData = JSON.parse(storedData);
-                // console.log("Dati recuperati da sessionStorage:", animeData);
+                // console.log("Dati recuperati da localStorage:", animeData);
                 return animeData;
             } else {
-                console.log("Nessun dato trovato in sessionStorage per l'episodio corrente.");
+                console.log("Nessun dato trovato in localStorage per l'episodio corrente.");
                 return null;
             }
         }
         function initAnimeDataInSessionStorage() {
-            const data = getAnimeDataFromSessionStorage();
+            const data = getAnimeDataFromLocalStorage();
             if (data === null) {
                 // se non ci sono dati, esci
-                console.error("Nessun dato trovato in sessionStorage per l'episodio corrente.");
+                console.error("Nessun dato trovato in localStorage per l'episodio corrente.");
                 return;
             }
             title = data.title;

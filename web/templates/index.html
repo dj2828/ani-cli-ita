@@ -99,7 +99,7 @@
                 {% for item in continua %}
                 <div class="anime">
                     <a href="play/{{ item.url }}" onclick="
-                            sessionStorage.setItem(`anime_data: {{ item.url.split('?')[0] }}`, JSON.stringify({
+                            localStorage.setItem(`anime_data: {{ item.url.split('?')[0] }}`, JSON.stringify({
                                 title: '{{ item.title }}',
                                 img: '{{ item.img }}'
                             }));
@@ -124,7 +124,7 @@
                 {% for anime_title, data in anime_prefe.items() %}
                 <div class="anime">
                     <a href="{{ url_for('ani.play', anime_url=data.url) }}" onclick="
-                            sessionStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
+                            localStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
                                 title: '{{ anime_title }}',
                                 img: '{{ data.img }}'
                             }));
@@ -155,7 +155,7 @@
             {% for anime_title, data in risultati.items() %}
             <div class="anime">
                 <a href="{{ url_for('ani.play', anime_url=data.url) }}" onclick="
-                        sessionStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
+                        localStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
                             title: '{{ anime_title }}',
                             img: '{{ data.img }}'
                         }));
