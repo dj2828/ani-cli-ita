@@ -134,6 +134,7 @@
                 background: rgba(255,255,255,0.3);
                 border-radius: 2px;
                 cursor: pointer;
+                min-width: 0;
             }
             #seekBar::-webkit-slider-thumb {
                 -webkit-appearance: none;
@@ -197,9 +198,7 @@
     <div id="container">
         <h2 style="margin: 40px;" id="title"></h2>
 
-        <video controls style="aspect-ratio: 16/9;" id="mainVideo" autoplay crossorigin="anonymous">
-            <source src="" type="video/mp4">
-        </video>
+        <video controls style="aspect-ratio: 16/9;" id="mainVideo" autoplay crossorigin="anonymous"></video>
 
         <div id="playerWrap" style="display: none;">
             <!-- Canvas principale che mostra il video (upscalato o originale) -->
@@ -222,7 +221,7 @@
         </div>
 
         <div class="button">
-            <label>Modalità Upscaling</label>
+            <label>Upscaling</label>
             <select id="modeSelect">
                 <option value="off" selected>Off</option>
                 <option value="0">A</option>
@@ -397,7 +396,7 @@
         loadVideo(episodi["{{ current_ep }}"]);
 
         // skip intro
-        let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : true;
+        let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : false;
         let opInterval = null;
         let edInterval = null;
         document.querySelector('.button input').checked = skip_intro;
