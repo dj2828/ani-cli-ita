@@ -29,7 +29,7 @@ def getPreferiti():
     return prefe
 
 def getHistoryWatched():
-    raw = request.cookies.get("history")
+    raw = request.cookies.get("mangaHistory")
     history = json.loads(unquote(raw)) if raw else None
     return history
 
