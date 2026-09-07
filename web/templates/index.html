@@ -98,12 +98,7 @@
             <div class="container-anime">
                 {% for item in continua %}
                 <div class="anime">
-                    <a href="play/{{ item.url }}" onclick="
-                            localStorage.setItem(`anime_data: {{ item.url.split('?')[0] }}`, JSON.stringify({
-                                title: '{{ item.title }}',
-                                img: '{{ item.img }}'
-                            }));
-                        ">
+                    <a href="play/{{ item.url }}">
                         <img src="{{ item.img }}">
                         <p>{{ item.title }} - {{ item.ep }}</p>
                         <div onclick="
@@ -123,12 +118,7 @@
             <div class="container-anime">
                 {% for anime_title, data in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="{{ url_for('ani.play', anime_url=data.url) }}" onclick="
-                            localStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
-                                title: '{{ anime_title }}',
-                                img: '{{ data.img }}'
-                            }));
-                        ">
+                    <a href="{{ url_for('ani.play', anime_url=data.url) }}">
                         <img src="{{ data.img }}">
                         <p>{{ anime_title }}</p>
                         <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
@@ -154,12 +144,7 @@
         <div class="container-anime">
             {% for anime_title, data in risultati.items() %}
             <div class="anime">
-                <a href="{{ url_for('ani.play', anime_url=data.url) }}" onclick="
-                        localStorage.setItem('anime_data: {{ data.url }}', JSON.stringify({
-                            title: '{{ anime_title }}',
-                            img: '{{ data.img }}'
-                        }));
-                    ">
+                <a href="{{ url_for('ani.play', anime_url=data.url) }}">
                     <img src="{{ data.img }}">
                     <p>{{ anime_title }}</p>
                     <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url }}', `{{ anime_title }}`, `{{ data.img }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>

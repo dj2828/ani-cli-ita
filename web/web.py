@@ -17,11 +17,6 @@ BASE_URL = "https://www.animeworld.ac"
 IS_STANDALONE = __name__ == '__main__'
 T = '' if IS_STANDALONE else 'ani/'
 
-def getEpisodi(anime_url):
-    anime_url = f"{BASE_URL}/play/{anime_url}"
-    ep = ani.cerca_ep(anime_url)
-    return ep
-
 def getPreferiti():
     if not IS_STANDALONE:
         raw = request.cookies.get("prefe")
@@ -59,10 +54,12 @@ def index():
 @web.route('/play/<path:anime_url>')
 def play(anime_url):
     ep = request.args.get("ep", 1)
-    episodi = getEpisodi(anime_url)
-    ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{anime_url}")
-    
-    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, ani_id=ani_id)
+
+    response = requests.get(f"{BASE_URL}/play/{anime_url}")
+    episodi = ani.cerca_ep(response=response)
+    ani_id, title, img = ani.get_data_from_url(response)
+
+    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, ani_id=ani_id, title=title, img=img)
 
 @web.route('/realUrl/<path:ep_url>')
 def realUrl(ep_url):

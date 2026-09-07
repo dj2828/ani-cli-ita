@@ -134,8 +134,9 @@ def cerca_nome(query):
         return fatto if fatto else False
     return False
 
-def cerca_ep(url):
-    response = requests.get(url)
+def cerca_ep(url="", response=None):
+    if response is None:
+        response = requests.get(url)
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "html.parser")
         # Naviga la struttura in modo più robusto
@@ -170,6 +171,16 @@ def get_mal_id_from_url(url):
         soup = BeautifulSoup(response.text, "html.parser")
         mal_id = soup.find("a", id="mal-button")["href"].split("/")[-1]
         return mal_id
+    else:
+        print("Errore nella richiesta")
+
+def get_data_from_url(response): # per web
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "html.parser")
+        mal_id = soup.find("a", id="mal-button")["href"].split("/")[-1]
+        title = soup.find("h2", class_="title").text.strip()
+        img = soup.find("div", id="thumbnail-watch").find("img")["src"]
+        return mal_id, title, img
     else:
         print("Errore nella richiesta")
 
