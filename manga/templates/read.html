@@ -140,17 +140,17 @@
 </head>
 <body>
     <div id="tasti-div">
-        <a id="prec" class="cambio" href="?title={{ title }}&cap={{ cap|int - 1 }}">{{ cap|int - 1 }}</a> <!-- qua sono a perchè non serve js nel href (come in ice.html) -->
+        <a id="prec" class="cambio" href="?cap={{ cap|int - 1 }}">{{ cap|int - 1 }}</a> <!-- qua sono a perchè non serve js nel href (come in ice.html) -->
         <select id="select" class="cambio">
-            {% for vol_number, capitoli in volumi.items() %}
+            {% for vol_number, capitoli in volumi|dictsort() %} <!-- dictsort per ordinare i volumi da 1 a n -->
                 <optgroup label="-- {{ vol_number }} --">
-                    {% for capitolo_number, capitolo_url in capitoli.items() %}
+                    {% for capitolo_number, capitolo_url in capitoli|dictsort() %}
                         <option value="{{ capitolo_url }}" {% if capitolo_number|int == cap|int %}selected{% endif %}>{{ capitolo_number }}</option>
                     {% endfor %}
                 </optgroup>
             {% endfor %}
         </select>
-        <a id="succ" class="cambio" href="?title={{ title }}&cap={{ cap|int + 1 }}">{{ cap|int + 1 }}</a>
+        <a id="succ" class="cambio" href="?cap={{ cap|int + 1 }}">{{ cap|int + 1 }}</a>
     </div>
 
     <div id="zoomContainer">
@@ -177,6 +177,9 @@
         const TITLE = "{{ title }}";
         const CAP = "{{ cap }}";
         let url_pagine = "";
+        let ID = window.location.href;
+            ID = ID.split("read/").at(-1);
+        const IMG = "{{ img }}";
 
         const select = document.getElementById('select');
         const img = document.getElementById('manga-image');
@@ -188,7 +191,7 @@
         }
 
         select.addEventListener('change', (e) => {
-            window.location = '?title=' + TITLE + '&cap=' + e.target.options[e.target.selectedIndex].text;
+            window.location = '?cap=' + e.target.options[e.target.selectedIndex].text;
         });
 
         let index = 1;
@@ -338,6 +341,63 @@
             localStorage.setItem('manga-zoom', nuovo);
         }
         localStorage.getItem('manga-zoom') && document.documentElement.style.setProperty('--img-height', localStorage.getItem('manga-zoom') + 'vh');
+
+        // history
+        function setCookie(nome, valore, giorni = 365) {
+            const scadenza = new Date();
+            scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
+            document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
+        }
+        function getCookie(nome) {
+            const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
+            return match ? decodeURIComponent(match[2]) : null;
+        }
+        function addToHistory(item, maxItems = 20) {
+            let history = [];
+            const raw = getCookie("manga-history");
+
+            if (raw) {
+                try {
+                    history = JSON.parse(raw);
+                } catch (e) {
+                    history = [];
+                }
+            }
+
+            const title = item.title;
+            const newEp = parseInt(item.ep);
+
+            // cerca se esiste già una voce per questa serie
+            const existingIndex = history.findIndex(h => h.title === title);
+
+            if (existingIndex !== -1) {
+                const existingEp = history[existingIndex].ep;
+
+                // se il nuovo episodio non è più avanti di quello salvato, non fare nulla
+                if (existingEp !== null && newEp !== null && newEp <= existingEp) {
+                    return; // episodio uguale o precedente, ignora
+                }
+
+                // altrimenti rimuovi quella vecchia per sostituirla
+                history.splice(existingIndex, 1);
+            }
+
+            // aggiunge la nuova voce (episodio più avanti, o serie nuova) in cima
+            history.unshift(item);
+
+            if (history.length > maxItems) {
+                history = history.slice(0, maxItems);
+            }
+
+            setCookie("manga-history", JSON.stringify(history));
+        }
+        
+        setTimeout(() => {
+            let last = { "url": ID, "title": TITLE, "cap": CAP, "img": IMG };
+            console.log("Soglia raggiunta, salvo in history:", last);
+
+            addToHistory(last);
+        }, 30000); // 30 secondi
     </script>
 </body>
 </html>

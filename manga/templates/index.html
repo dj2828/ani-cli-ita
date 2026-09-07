@@ -98,12 +98,9 @@
             <div class="container-anime">
                 {% for item in continua %}
                 <div class="anime">
-                    <a href="play/{{ item.url }}">
+                    <a href="read/{{ item.url }}">
                         <img src="{{ item.img }}">
-                        <script>
-                            // localStorage.setItem("Img last anime","")
-                        </script>
-                        <p>{{ item.title }}</p>
+                        <p>{{ item.title }} - {{ item.cap }}</p>
                         <div onclick="
                                 event.stopPropagation();
                                 event.preventDefault();
@@ -121,10 +118,10 @@
             <div class="container-anime">
                 {% for anime_title, data in anime_prefe.items() %}
                 <div class="anime">
-                    <a href="{{ url_for('manga.read', manga_url=data.url) }}?title={{ anime_title }}">
+                    <a href="{{ url_for('manga.read', manga_url=data.url) }}">
                         <img src="{{ data.img }}">
                         <p>{{ anime_title }}</p>
-                        <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
+                        <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url }}', `{{ anime_title }}`)" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">🖤</div>
                     </a>
                 </div>
                 {% endfor %}
@@ -135,7 +132,7 @@
     <center>
     <br><br>
     <form action="{{ url_for('manga.index') }}" method="get">
-        <input type="text" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
+        <input type="search" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
         <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
     <br><br>
@@ -147,7 +144,7 @@
         <div class="container-anime">
             {% for anime_title, data in risultati.items() %}
             <div class="anime">
-                <a href="{{ url_for('manga.read', manga_url=data.url.split('/')[-2]) }}?title={{ anime_title }}">
+                <a href="{{ url_for('manga.read', manga_url=data.url.split('/')[-2]) }}">
                     <img src="{{ data.img }}">
                     <p>{{ anime_title }}</p>
                     <div onclick="event.stopPropagation(); event.preventDefault(); prefe('{{ data.url.split('/')[-2] }}', `{{ anime_title }}`, '{{ data.img }}')" style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">{% if anime_title in anime_prefe %}🖤{% else %}♥️{% endif %}</div>
@@ -190,7 +187,7 @@
         }
         function removeFromHistory(url, el) {
             let history = [];
-            const raw = getCookie("history");
+            const raw = getCookie("manga-history");
 
             if (raw) {
                 try {
@@ -203,7 +200,7 @@
             // rimuove solo l'elemento con quell'url
             history = history.filter(h => h.url !== url);
 
-            setCookie("history", JSON.stringify(history));
+            setCookie("manga-history", JSON.stringify(history));
 
             // rimuove l'elemento dalla UI senza ricaricare la pagina
             const card = el.closest('.anime'); // adatta la classe al tuo markup

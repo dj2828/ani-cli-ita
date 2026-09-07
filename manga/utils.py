@@ -35,6 +35,9 @@ def cerca_vol(url):
         soup = BeautifulSoup(response.text, "html.parser")
         volumi = {}
 
+        title = soup.find("h1", class_="name bigger").text.strip()
+        img = soup.find("div", class_="thumb").find("img")["src"]
+
         volumiDiv = soup.find_all("div", class_="volume-element")
         for volume in volumiDiv:
             volume_number = volume.find("p", class_="volume-name").text.replace("Volume", "").strip()
@@ -46,7 +49,7 @@ def cerca_vol(url):
 
             volumi[volume_number] = capitoli
 
-        return volumi
+        return volumi, title, img
     else:
         print("Errore nella richiesta")
 

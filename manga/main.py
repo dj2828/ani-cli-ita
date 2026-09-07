@@ -16,10 +16,10 @@ BASE_URL = "https://www.mangaworld.mx"
 IS_STANDALONE = __name__ == '__main__'
 T = '' if IS_STANDALONE else 'manga/'
 
-def getVolumi(manga_url):
+def getData(manga_url):
     manga_url = f"{BASE_URL}/manga/{manga_url}"
-    vol = ani.cerca_vol(manga_url)
-    return vol
+    vol, title, img = ani.cerca_vol(manga_url)
+    return vol, title, img
 
 def getPreferiti():
     raw = request.cookies.get("prefe manga")
@@ -29,7 +29,7 @@ def getPreferiti():
     return prefe
 
 def getHistoryWatched():
-    raw = request.cookies.get("mangaHistory")
+    raw = request.cookies.get("manga-history")
     history = json.loads(unquote(raw)) if raw else None
     return history
 
@@ -44,8 +44,7 @@ def index():
 
 @web.route('/read/<path:manga_url>')
 def read(manga_url):
-    title = request.args.get("title")
-    volumi = getVolumi(manga_url)
+    volumi, title, img = getData(manga_url)
     cap = request.args.get("cap")
     if not cap:
         cap = 1
@@ -53,7 +52,7 @@ def read(manga_url):
     # episodi = getEpisodi(manga_url)
     # ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{manga_url}")
 
-    return render_template(f'{T}read.html', volumi=volumi, title=title, cap=cap)
+    return render_template(f'{T}read.html', volumi=volumi, title=title, img=img, cap=cap)
 
 @web.route('/getUrlPagina/')
 def getUrlPagina():
