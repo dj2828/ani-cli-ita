@@ -104,7 +104,7 @@
                         <div onclick="
                             event.stopPropagation();
                             event.preventDefault();
-                            removeFromHistory('{{ item.url }}', this);
+                            removeFromHistory('{{ item.title }}', this);
                         " style="cursor: pointer; margin-bottom: 10px; position: relative; z-index: 10;">❌</div>
                     </a>
                 </div>
@@ -157,39 +157,16 @@
 
     <script>
         async function prefe(url, nome, img) {
-            {% if vercel %}
-            function getCookie(nome) {
-                const match = document.cookie.match(new RegExp('(^| )' + nome + '=([^;]+)'));
-                return match ? decodeURIComponent(match[2]) : null;
-            }
-            function setCookie(nome, valore, giorni = 365) {
-                const scadenza = new Date();
-                scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
-                document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
-            }
-            let prefe = JSON.parse(getCookie("prefe")) || {};
-            if (nome in prefe) {
-                delete prefe[nome];
-            } else {
-                prefe[nome] = {"url": url, "img": img};
-            }
-            setCookie("prefe", JSON.stringify(prefe));
-            location.reload();
-            {% else %}
-            const formData = new FormData();
-            formData.append('url', url);
-            formData.append('nome', nome);
-            formData.append('img', img)
-
             const response = await fetch('{{ url_for("ani.prefe") }}', {
                 method: 'POST',
-                body: formData
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({url: url, nome: nome, img: img})
             });
-
             if (response.ok) {
                 window.location.reload();
             }
-            {% endif %}
         }
 
         function getCookie(nome) {
@@ -201,7 +178,30 @@
             scadenza.setTime(scadenza.getTime() + giorni * 24 * 60 * 60 * 1000);
             document.cookie = `${nome}=${encodeURIComponent(valore)}; expires=${scadenza.toUTCString()}; path=/`;
         }
-        function removeFromHistory(url, el) {
+        function removeFromHistory(title, el) {
+            {% if VERCEL %}
+            fetch('{{ url_for("ani_api.removeHistory") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({title: title})
+            }).then(async response => {
+                if (response.ok) {
+                    // 1. Rimuove l'elemento dalla UI
+                    const card = el.closest('.anime');
+                    if (card) card.remove();
+                    
+                    // 2. Attende la risoluzione del JSON inviato dal backend Flask
+                    const data = await response.json(); // <-- gestito con await
+                    
+                    if (data.vuota) {
+                        const container = document.getElementById('continua');
+                        if (container) container.style.display = 'none';
+                    }
+                }
+            });
+            {% else %}
             let history = [];
             const raw = getCookie("history");
 
@@ -213,8 +213,8 @@
                 }
             }
 
-            // rimuove solo l'elemento con quell'url
-            history = history.filter(h => h.url !== url);
+            // Rimuove solo l'elemento con quel titolo
+            history = history.filter(h => h.title !== title);
 
             setCookie("history", JSON.stringify(history));
 
@@ -227,10 +227,10 @@
                 const cont = document.getElementById('continua');
                 if (cont) cont.style.display = 'none';
             }
+            {% endif %}
         }
 
         localStorage.setItem("return", "{{ q if q else '' }}");
-
     </script>
 </body>
 </html>

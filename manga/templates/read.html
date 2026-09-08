@@ -353,6 +353,17 @@
             return match ? decodeURIComponent(match[2]) : null;
         }
         function addToHistory(item, maxItems = 20) {
+            {% if VERCEL %}
+            fetch('{{ url_for("ani_api.addHistory") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({item, manga: true})
+            }).then(response => {
+                if (response.ok) return;
+            });
+            {% else %}
             let history = [];
             const raw = getCookie("manga-history");
 
@@ -390,6 +401,7 @@
             }
 
             setCookie("manga-history", JSON.stringify(history));
+            {% endif %}
         }
         
         setTimeout(() => {

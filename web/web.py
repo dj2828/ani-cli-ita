@@ -17,10 +17,12 @@ BASE_URL = "https://www.animeworld.ac"
 IS_STANDALONE = __name__ == '__main__'
 T = '' if IS_STANDALONE else 'ani/'
 
+if not IS_STANDALONE:
+    import moduli.ani_api as ani_api
+
 def getPreferiti():
     if not IS_STANDALONE:
-        raw = request.cookies.get("prefe")
-        prefe = json.loads(unquote(raw)) if raw else {}
+        prefe = ani_api.getPreferiti()
     else:
         prefe = ani.carica_preferiti()
         if not prefe:
@@ -34,9 +36,12 @@ def getPreferiti():
     return prefe
 
 def getHistoryWatched():
-    raw = request.cookies.get("history")
-    history = json.loads(unquote(raw)) if raw else None
-    return history
+    if not IS_STANDALONE:
+        return ani_api.getHistoryWatched()
+    else:
+        raw = request.cookies.get("history")
+        history = json.loads(unquote(raw)) if raw else None
+        return history
 
 web = Blueprint('ani', __name__)
 
@@ -48,8 +53,8 @@ def index():
             k: {**v, 'url': v['url'].split('/')[-1]} 
             for k, v in risultati.items()
         }
-        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, vercel=not IS_STANDALONE)
-    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), vercel=not IS_STANDALONE, continua=getHistoryWatched())
+        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, VERCEL=not IS_STANDALONE)
+    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), VERCEL=not IS_STANDALONE, continua=getHistoryWatched())
 
 @web.route('/play/<path:anime_url>')
 def play(anime_url):
@@ -59,7 +64,7 @@ def play(anime_url):
     episodi = ani.cerca_ep(response=response)
     ani_id, title, img = ani.get_data_from_url(response)
 
-    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, ani_id=ani_id, title=title, img=img)
+    return render_template(f'{T}play.html', ep=episodi, current_ep=ep, ani_id=ani_id, title=title, img=img, VERCEL=not IS_STANDALONE)
 
 @web.route('/realUrl/<path:ep_url>')
 def realUrl(ep_url):
@@ -68,21 +73,23 @@ def realUrl(ep_url):
 
 @web.post('/prefe')
 def prefe():
-    url = request.form.get('url')
-    nome = request.form.get('nome')
-    img = request.form.get('img')
-    
-    pref = ani.carica_preferiti()
-    if not pref:
-        pref = {}
+    data = request.get_json()
+    url = data.get('url')
+    nome = data.get('nome')
+    img = data.get('img')
+
+    pref = ani.carica_preferiti() if IS_STANDALONE else getPreferiti()
 
     if nome in pref:
         del pref[nome]
     else:
-        pref[nome] = {"url": BASE_URL + url, "img": img}
+        pref[nome] = {"url": url, "img": img}
 
-    with open('preferiti.json', 'w', encoding='utf-8') as f:
-        json.dump(pref, f, indent=4)
+    if not IS_STANDALONE:
+        ani_api.salvaPreferiti(pref)
+    else:
+        with open('preferiti.json', 'w', encoding='utf-8') as f:
+            json.dump(pref, f, indent=4)
 
     return "ok", 200
 

@@ -16,22 +16,31 @@ BASE_URL = "https://www.mangaworld.mx"
 IS_STANDALONE = __name__ == '__main__'
 T = '' if IS_STANDALONE else 'manga/'
 
+if not IS_STANDALONE:
+    import moduli.ani_api as ani_api
+
 def getData(manga_url):
     manga_url = f"{BASE_URL}/manga/{manga_url}"
     vol, title, img = ani.cerca_vol(manga_url)
     return vol, title, img
 
 def getPreferiti():
-    raw = request.cookies.get("prefe manga")
-    prefe = json.loads(unquote(raw)) if raw else {}
+    if not IS_STANDALONE:
+        prefe = ani_api.getPreferiti(True)
+    else:
+        raw = request.cookies.get("prefe manga")
+        prefe = json.loads(unquote(raw)) if raw else {}
     for anime_title, data in prefe.items():
         prefe[anime_title] = {"url": data["url"].split('/')[-1], "img": data["img"]}
     return prefe
 
 def getHistoryWatched():
-    raw = request.cookies.get("manga-history")
-    history = json.loads(unquote(raw)) if raw else None
-    return history
+    if not IS_STANDALONE:
+        return ani_api.getHistoryWatched(True)
+    else:
+        raw = request.cookies.get("manga-history")
+        history = json.loads(unquote(raw)) if raw else None
+        return history
 
 web = Blueprint('manga', __name__)
 
@@ -39,8 +48,8 @@ web = Blueprint('manga', __name__)
 def index():
     if q := request.args.get("q"):
         risultati = ani.cerca_nome(q) if q else {}
-        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q)
-    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), continua=getHistoryWatched())
+        return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, VERCEL=not IS_STANDALONE)
+    return render_template(f'{T}index.html', anime_prefe=getPreferiti(), VERCEL=not IS_STANDALONE, continua=getHistoryWatched())
 
 @web.route('/read/<path:manga_url>')
 def read(manga_url):
@@ -48,17 +57,31 @@ def read(manga_url):
     cap = request.args.get("cap")
     if not cap:
         cap = 1
-    # ep = request.args.get("ep", 1)
-    # episodi = getEpisodi(manga_url)
-    # ani_id = ani.get_mal_id_from_url(f"{BASE_URL}/play/{manga_url}")
 
-    return render_template(f'{T}read.html', volumi=volumi, title=title, img=img, cap=cap)
+    return render_template(f'{T}read.html', volumi=volumi, title=title, img=img, cap=cap, VERCEL=not IS_STANDALONE)
 
 @web.route('/getUrlPagina/')
 def getUrlPagina():
     cap_url = request.args.get('url')
     real_url = ani.getUrlPagina(cap_url)
     return real_url
+
+@web.post('/prefe')
+def prefe(): # solo per vercel
+    data = request.get_json()
+    url = data.get('url')
+    nome = data.get('nome')
+    img = data.get('img')
+
+    pref = getPreferiti()
+
+    if nome in pref:
+        del pref[nome]
+    else:
+        pref[nome] = {"url": url, "img": img}
+
+    ani_api.salvaPreferiti(pref, True)
+    return "ok", 200
 
 if __name__ == '__main__':
     # se eseguito standalone lo importa come se fosse un bluprint (quindi è tutto un bluprint)
