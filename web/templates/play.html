@@ -401,11 +401,14 @@
             initSkipIntro(); // re-inizializza skip intro per il nuovo episodio
 
             loadVideo(epUrl);
+            
+            caricaImmagineInMediasession();
         }
 
         const episodi = {{ ep | tojson }};
 
         loadVideo(episodi["{{ current_ep }}"]);
+        caricaImmagineInMediasession();
 
         // skip intro
         let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : false;
@@ -455,6 +458,18 @@
             }
         });
 
+        // immagine
+        function caricaImmagineInMediasession() {
+            if (!('mediaSession' in navigator)) return; // not in
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: title,
+                artwork: [{
+                    src: immagine,
+                    sizes: "512x512",
+                    type: "image/jpeg"
+                }]
+            });
+        }
     </script>
 </body>
 </html>
