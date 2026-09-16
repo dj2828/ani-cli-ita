@@ -14,7 +14,6 @@ url_scelto = ""
 img_anime_scelto = ""
 ep_attuale = 0
 max_ep = 0
-stop_download = False
 syncplay = False
 syncplay_ip = "syncplay.pl:8999"
 BASE_URL = "https://www.animeworld.ac/"
@@ -154,9 +153,6 @@ def cerca_ep(url="", response=None):
         print("Errore nella richiesta")
 
 def get_real_video_url(url):
-    global stop_download
-    stop_download = False
-
     url_pagina_video = f"{BASE_URL}api/episode/serverPlayerAnimeWorld?id={url.split('/')[-1]}"
 
     response = requests.get(url_pagina_video)
@@ -261,6 +257,8 @@ def carica(url):
     sleep(2)
     proc.wait()
 
+import requests
+
 def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
     def chiedi_info_a_utente(guess_serie, ani_id, guess_season, guess_status, guess_parte):
         guess_status_str = "In Corso" if guess_status else "Concluso"
@@ -321,7 +319,6 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
                 }
             ]
 
-
             meta = prompt(q_meta)
 
             serie_name = meta["serie"]
@@ -337,7 +334,21 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
             status = guess_status
             parte = guess_parte
 
-        return serie_name, season, status, ani_id, parte
+        # NUOVO: chiedi modalità di salvataggio
+        modalita = prompt([
+            {
+                "type": "list",
+                "name": "modo",
+                "message": "Modalità di salvataggio:",
+                "choices": [
+                    {"name": "Link streaming (.strm) - consigliato per Jellyfin", "value": "strm"},
+                    {"name": "Download diretto (.mp4)", "value": "mp4"},
+                ],
+                "default": "strm"
+            }
+        ])["modo"]
+
+        return serie_name, season, status, ani_id, parte, modalita
     """
     Gestisce il salvataggio strutturato per Jellyfin e aggiorna il DB locale.
     """
@@ -355,7 +366,7 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
         guess_serie = f"{guess_serie} (ITA)"
 
     # 2. Chiedi conferma all'utente (InquirerPy)
-    serie, season, airing, ani_id, parte = chiedi_info_a_utente(guess_serie, ani_id, guess_season, airing, parte)
+    serie, season, airing, ani_id, parte, modalita = chiedi_info_a_utente(guess_serie, ani_id, guess_season, airing, parte)
 
     serie_path = path_giusto(serie)
     season_path = f"Season {season:02d}"
@@ -372,45 +383,123 @@ def url_jelly(episodi_dict, anime_url, anime_scelto_=False,):
         "url": anime_url,
         "airing": airing,
         "folder": full_path,
-        "last_ep_downloaded": []
+        "last_ep_downloaded": [],
+        "formato": modalita
     }
 
     parte_da = 0
     if parte:
-        parte_da = max(int(ep.replace("E", "").replace(".strm", "")) for ep in os.listdir(full_path))
+        ep_esistenti = [
+            f for f in os.listdir(full_path)
+            if f.startswith("E") and (f.endswith(".strm") or f.endswith(".mp4"))
+        ]
+        if ep_esistenti:
+            parte_da = max(
+                int(f.replace("E", "").replace(".strm", "").replace(".mp4", ""))
+                for f in ep_esistenti
+            )
         db[db_key]["parte_da"] = parte_da
 
-    # 4. Scarica i file .strm
-    print(f"\nSalvataggio collegamenti in: {full_path}")
-    progress = tqdm(total=len(episodi_dict), desc="Creazione .strm", unit="ep")
-    
+    # 4. Scarica i file (.strm o .mp4 a seconda della modalità scelta)
+    print(f"\nSalvataggio in: {full_path} (modalità: {modalita})")
+    progress = tqdm(total=len(episodi_dict), desc="Elaborazione episodi", unit="ep")
+
     nuovi_ep = []
-    
+
     for ep_num, link in episodi_dict.items():
-        filename = f"E{ep_num + parte_da}.strm"
+        ep_reale = ep_num + parte_da
+        ext = "mp4" if modalita == "mp4" else "strm"
+        filename = f"E{ep_reale}.{ext}"
         filepath = os.path.join(full_path, filename)
-        
-        # Evita di rifare richieste se il file esiste
+
+        # Evita di rifare richieste se il file esiste già
         if not os.path.exists(filepath):
             real_url = get_real_video_url(BASE_URL + link)
             if real_url:
-                with open(filepath, "w") as f:
-                    f.write(real_url)
-                nuovi_ep.append(ep_num + parte_da)
-        
+                if modalita == "strm":
+                    with open(filepath, "w") as f:
+                        f.write(real_url)
+                else:
+                    if scarica_mp4(real_url, filepath, ep_reale):
+                        nuovi_ep.append(ep_reale)
+                        progress.update(1)
+                        continue
+                nuovi_ep.append(ep_reale)
+
         progress.update(1)
-    
+
     progress.close()
-    
+
     # Aggiorna lista episodi nel db
-    # Uniamo quelli vecchi con quelli appena scaricati per non perdere lo storico
     existing_eps = set(db[db_key].get("last_ep_downloaded", []))
     existing_eps.update(nuovi_ep)
     db[db_key]["last_ep_downloaded"] = list(existing_eps)
-    
+
     save_db(db)
     print("✅ Salvataggio completato e Database aggiornato.")
     sleep(1)
+
+
+def scarica_mp4(url, filepath, ep_num, chunk_size=1024 * 1024):
+    def _scrivi_stream(response, tmp_path, filepath, ep_num, byte_iniziali, chunk_size, modo, total=None):
+        with open(tmp_path, modo) as f, tqdm(
+            total=total,
+            initial=byte_iniziali,
+            unit="B",
+            unit_scale=True,
+            desc=f"  E{ep_num}",
+            leave=False
+        ) as bar:
+            for chunk in response.iter_content(chunk_size=chunk_size):
+                if chunk:
+                    f.write(chunk)
+                    bar.update(len(chunk))
+
+        os.rename(tmp_path, filepath)
+        return True
+    """
+    Scarica un video mp4 in streaming con progress bar dedicata.
+    Se esiste già un file .part (download interrotto), riprende da lì
+    usando l'header Range, invece di ripartire da zero.
+    """
+    tmp_path = filepath + ".part"
+
+    # Byte già scaricati (0 se non esiste ancora nulla)
+    byte_iniziali = os.path.getsize(tmp_path) if os.path.exists(tmp_path) else 0
+
+    headers = {}
+    if byte_iniziali > 0:
+        headers["Range"] = f"bytes={byte_iniziali}-"
+
+    try:
+        with requests.get(url, headers=headers, stream=True, timeout=30) as r:
+            # Se il server non supporta il resume (torna 200 invece di 206),
+            # ripartiamo da zero per evitare un file corrotto
+            if byte_iniziali > 0 and r.status_code != 206:
+                print(f"  ⚠️  Server non supporta il resume per E{ep_num}, riparto da zero")
+                byte_iniziali = 0
+                r.close()
+                with requests.get(url, stream=True, timeout=30) as r2:
+                    r2.raise_for_status()
+                    return _scrivi_stream(r2, tmp_path, filepath, ep_num, byte_iniziali, chunk_size, modo="wb")
+
+            r.raise_for_status()
+
+            # Calcolo del totale per la progress bar
+            if byte_iniziali > 0:
+                content_range = r.headers.get("content-range")  # es: "bytes 1234-5678/9999"
+                total = int(content_range.split("/")[-1]) if content_range else None
+            else:
+                cl = r.headers.get("content-length")
+                total = int(cl) if cl else None
+
+            modo = "ab" if byte_iniziali > 0 else "wb"
+            return _scrivi_stream(r, tmp_path, filepath, ep_num, byte_iniziali, chunk_size, modo=modo, total=total)
+
+    except Exception as e:
+        print(f"❌ Errore scaricando episodio {ep_num}: {e}")
+        # NON cancelliamo il .part: resta lì per poterlo riprendere al prossimo run
+        return False
 
 def aggiorna_libreria():
     """
@@ -691,7 +780,7 @@ def scegli_ep(next_ep=False, ricarica=False):
     else:
         ep_choices = []
         if not syncplay:
-            ep_choices.append(Choice(value="jelly", name=f"▶️  Aggiungi a Jellyfin"))
+            ep_choices.append(Choice(value="jelly", name=f"▶️  Aggiungi a Jellyfin / ⬇️  Scarica"))
             ep_choices.append(Choice(value="sync", name=f"🔗 Avvia Syncplay"))
         ep_choices += [Choice(value=link, name=f"Episodio {i+1}: {nome}") for i, (nome, link) in enumerate(episodi.items())]
         questions = [
@@ -779,7 +868,6 @@ def rimuovi_preferito():
         return
 
 def menu_post_visione():
-    global stop_download
     while True:
         os.system('cls' if os.name == 'nt' else 'clear')
         preferiti = carica_preferiti()
@@ -811,28 +899,23 @@ def menu_post_visione():
         try:
             result = prompt(questions)
             if not result: # Handle Ctrl+C
-                stop_download = True
                 print("\nUscita dal programma.")
                 break
             
             scelta = result['scelta_finale']
 
             if scelta == "prossimo":
-                stop_download = True
                 scegli_ep(next_ep=True)
             elif scelta == "scegli":
-                stop_download = True
                 scegli_ep()
             elif scelta == "ricarica":
                 scegli_ep(ricarica=True)
             elif scelta == "salva":
                 salva_preferito()
             elif scelta == "esci":
-                stop_download = True
                 print("\nUscita dal programma.")
                 break
         except KeyboardInterrupt:
-            stop_download = True
             print("\nUscita dal programma.")
             break
 
