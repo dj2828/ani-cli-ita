@@ -212,6 +212,7 @@
             </div>
         </div>
         
+        {% if ep | length != 1 %}
         <div id="ep-container">
             {% for episode, url in ep.items() %}
                 <div class="ep {% if episode|int == current_ep|int %}active{% endif %}">
@@ -219,6 +220,7 @@
                 </div>
             {% endfor %}
         </div>
+        {% endif %}
 
         <div class="button">
             <label>Upscaling</label>

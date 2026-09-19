@@ -52,7 +52,7 @@ def index():
         risultati = {
             k: {**v, 'url': v['url'].split('/')[-1]} 
             for k, v in risultati.items()
-        }
+        } if risultati else {}
         return render_template(f'{T}index.html', anime_prefe=getPreferiti(), risultati=risultati, q=q, VERCEL=not IS_STANDALONE)
     return render_template(f'{T}index.html', anime_prefe=getPreferiti(), VERCEL=not IS_STANDALONE, continua=getHistoryWatched())
 
