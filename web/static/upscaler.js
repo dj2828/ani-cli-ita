@@ -248,14 +248,14 @@ async function startPipeline() {
 
 srcVideo.addEventListener('loadedmetadata', () => {
     if (seekBar) seekBar.max = srcVideo.duration || 100;
-    if (timeLabel) timeLabel.textContent = fmtTime(0) + ' / ' + fmtTime(srcVideo.duration);
+    if (timeLabel) timeLabel.textContent = fmtTime(0) + ' / -' + fmtTime(srcVideo.duration);
     startPipeline();
 });
 
 srcVideo.addEventListener('timeupdate', () => {
     if (!isDraggingSeek && srcVideo.duration) {
         if (seekBar) seekBar.value = srcVideo.currentTime;
-        if (timeLabel) timeLabel.textContent = fmtTime(srcVideo.currentTime) + ' / ' + fmtTime(srcVideo.duration);
+        if (timeLabel) timeLabel.textContent = fmtTime(srcVideo.currentTime) + ' / -' + fmtTime(srcVideo.duration - srcVideo.currentTime);
     }
 });
 
@@ -273,7 +273,7 @@ srcVideo.addEventListener('ended', () => {
     isPlaying = false;
     if (playPauseBtn) playPauseBtn.textContent = '▶';
     if (seekBar) seekBar.value = 0;
-    if (timeLabel) timeLabel.textContent = fmtTime(0) + ' / ' + fmtTime(srcVideo.duration);
+    if (timeLabel) timeLabel.textContent = fmtTime(0) + ' / -' + fmtTime(srcVideo.duration);
 });
 
 // --- Controlli Barra Player ---
@@ -304,7 +304,7 @@ if (seekBar) {
     seekBar.addEventListener('input', () => {
         if (srcVideo.duration && timeLabel) {
             const val = parseFloat(seekBar.value);
-            timeLabel.textContent = fmtTime(val) + ' / ' + fmtTime(srcVideo.duration);
+            timeLabel.textContent = fmtTime(val) + ' / -' + fmtTime(srcVideo.duration - val);
         }
     });
 }
