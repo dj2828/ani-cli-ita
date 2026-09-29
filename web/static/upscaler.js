@@ -401,7 +401,7 @@ if (mainCanvas) {
 window.addEventListener('keydown', (e) => {
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
-    if (e.code === 'Space') {
+    if (e.code === 'Space' || e.code === 'KeyK') {
         e.preventDefault();
         if (isPlaying) {
             srcVideo.pause();
