@@ -453,6 +453,8 @@
                     } else {
                         console.warn('Intro skipper: no data found');
                         skip_intro_data_span.textContent = `Intro non trovata`;
+                        opInterval = null;
+                        edInterval = null;
                     }
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
