@@ -246,7 +246,7 @@
             <div id="modeDesc"></div>
             <p id="status">🔄 Caricamento pipeline...</p>
         </div>
-        <div class="button" onclick="toggleSkipIntro(); this.querySelector('input').checked = skip_intro">Skip Intro<input type="checkbox" style="margin-left: 5px;"></div>
+        <div class="button" onclick="toggleSkipIntro(); this.querySelector('input').checked = skip_intro">Skip Intro<input type="checkbox" style="margin-left: 5px;"></div><span id="skip_intro_data"></span>
         <a href="" target="_blank" style="text-decoration: none;" id="down_vid"><div class="button">Scarica Video</div></a>
     </div>
 
@@ -414,14 +414,17 @@
 
         // skip intro
         let skip_intro = localStorage.getItem("skip_intro") !== null ? localStorage.getItem("skip_intro") === "true" : false;
+        const skip_intro_data_span = document.getElementById('skip_intro_data');
         let opInterval = null;
         let edInterval = null;
         document.querySelector('.button input').checked = skip_intro;
         function toggleSkipIntro() {
             skip_intro = !skip_intro;
             localStorage.setItem("skip_intro", skip_intro.toString());
+            skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
         }
         function initSkipIntro() {
+            skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
             const url_skip_intro = `https://api.aniskip.com/v1/skip-times/${ani_id}/${current_ep}?types=op&types=ed`;
             fetch(url_skip_intro)
                 .then(response => response.json())
@@ -441,10 +444,15 @@
                         const opStartMin = `${Math.floor(opInterval[0] / 60)}:${Math.floor(opInterval[0] % 60).toString().padStart(2, '0')}`;
                         const opEndMin = `${Math.floor(opInterval[1] / 60)}:${Math.floor(opInterval[1] % 60).toString().padStart(2, '0')}`;
                         console.log(`OP: da ${opStartMin} a ${opEndMin}`);
+                        skip_intro_data_span.textContent = `${opStartMin}, ${opEndMin};`;
                         
                         const edStartMin = `${Math.floor(edInterval[0] / 60)}:${Math.floor(edInterval[0] % 60).toString().padStart(2, '0')}`;
                         const edEndMin = `${Math.floor(edInterval[1] / 60)}:${Math.floor(edInterval[1] % 60).toString().padStart(2, '0')}`;
                         console.log(`ED: da ${edStartMin} a ${edEndMin}`);
+                        skip_intro_data_span.textContent += ` ${edStartMin}, ${edEndMin}`;
+                    } else {
+                        console.warn('Intro skipper: no data found');
+                        skip_intro_data_span.textContent += `Intro non trovata`;
                     }
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
