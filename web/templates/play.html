@@ -13,6 +13,7 @@
             --secondary-color: #730000;
 
             --text-color: white;
+            --second-text-color: black;
         }
         * {
             margin: 0;
@@ -68,6 +69,10 @@
         }
 
         video { width:50%; }
+
+        form div, form div input, form div select, form div button {
+            color: var(--second-text-color);
+        }
 
         /* upscaler */
             .button label {
@@ -247,6 +252,48 @@
             <p id="status">🔄 Caricamento pipeline...</p>
         </div>
         <div class="button" onclick="toggleSkipIntro(); this.querySelector('input').checked = skip_intro">Skip Intro<input type="checkbox" style="margin-left: 5px;"></div><span id="skip_intro_data"></span>
+        <form id="skipForm" style="display: none;">
+            <div>
+                <label for="skipType">Tipo Skip:</label>
+                <select id="skipType" name="skip_type" required>
+                <option value="op">Opening (OP)</option>
+                <option value="ed">Ending (ED)</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="startTime">Inizio (MM:SS):</label>
+                <input 
+                    type="text" 
+                    id="startTime" 
+                    name="start_time" 
+                    pattern="^([0-9]{1,3}):([0-5][0-9])$" 
+                    placeholder="05:34" 
+                    required 
+                />
+            </div>
+
+            <div>
+                <label for="endTime">Fine (MM:SS):</label>
+                <input 
+                    type="text" 
+                    id="endTime" 
+                    name="end_time" 
+                    pattern="^([0-9]{1,3}):([0-5][0-9])$" 
+                    placeholder="07:02" 
+                    required 
+                />
+            </div>
+
+            <div>
+                <label for="providerName">Provider:</label>
+                <input type="text" id="providerName" name="provider_name" value="netflix" required />
+            </div>
+
+            <button type="submit">Invia Skip</button>
+        </form>
+        <div id="statusMessage"></div>
+
         <a href="" target="_blank" style="text-decoration: none;" id="down_vid"><div class="button">Scarica Video</div></a>
     </div>
 
@@ -425,6 +472,7 @@
         }
         function initSkipIntro() {
             skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
+            document.getElementById('skipForm').style.display = 'none';
             const url_skip_intro = `https://api.aniskip.com/v1/skip-times/${ani_id}/${current_ep}?types=op&types=ed`;
             fetch(url_skip_intro)
                 .then(response => response.json())
@@ -455,6 +503,7 @@
                         skip_intro_data_span.textContent = `Intro non trovata`;
                         opInterval = null;
                         edInterval = null;
+                        document.getElementById('skipForm').style.display = 'block';
                     }
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
@@ -469,6 +518,70 @@
                 video.currentTime = edInterval[1];
             }
         });
+
+        function timeToSeconds(timeStr) {
+            const parts = timeStr.trim().split(':').map(Number);
+            if (parts.length === 2) {
+                const [minutes, seconds] = parts;
+                return minutes * 60 + seconds;
+            } else if (parts.length === 3) {
+                const [hours, minutes, seconds] = parts;
+                return hours * 3600 + minutes * 60 + seconds;
+            }
+            return parseFloat(timeStr) || 0;
+        }
+        // sendSkipIntro
+            document.getElementById('skipForm').addEventListener('submit', async function(event) {
+                event.preventDefault();
+
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.textContent = 'Invio in corso...';
+
+                // Recupera o genera l'UUID submitter
+                let submitterId = localStorage.getItem('aniskip_submitter_id');
+                if (!submitterId) {
+                    submitterId = crypto.randomUUID();
+                    localStorage.setItem('aniskip_submitter_id', submitterId);
+                }
+
+                // Converte i tempi "MM:SS" immessi dall'utente in secondi numerici per l'API
+                const startTimeSec = timeToSeconds(document.getElementById('startTime').value);
+                const endTimeSec = timeToSeconds(document.getElementById('endTime').value);
+                
+                epLengthSec = video.duration;
+
+                const payload = {
+                    skip_type: document.getElementById('skipType').value,
+                    provider_name: document.getElementById('providerName').value,
+                    start_time: startTimeSec,
+                    end_time: endTimeSec,
+                    episode_length: epLengthSec,
+                    submitter_id: submitterId
+                };
+
+                const url = `https://api.aniskip.com/v1/skip-times/${ani_id}/${current_ep}`;
+
+                try {
+                    const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                    statusDiv.textContent = 'Skip inviato con successo!';
+                    } else {
+                    statusDiv.textContent = 'Errore: ' + JSON.stringify(data.message || data);
+                    }
+                } catch (err) {
+                    statusDiv.textContent = 'Errore di rete durante l\'invio.';
+                    console.error(err);
+                }
+            });
 
         // immagine
         function caricaImmagineInMediasession() {
