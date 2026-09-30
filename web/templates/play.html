@@ -452,7 +452,7 @@
                         skip_intro_data_span.textContent += ` ${edStartMin}, ${edEndMin}`;
                     } else {
                         console.warn('Intro skipper: no data found');
-                        skip_intro_data_span.textContent += `Intro non trovata`;
+                        skip_intro_data_span.textContent = `Intro non trovata`;
                     }
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
