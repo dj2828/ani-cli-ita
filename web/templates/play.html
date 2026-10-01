@@ -473,6 +473,11 @@
         function initSkipIntro() {
             skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
             document.getElementById('skipForm').style.display = 'none';
+
+            // reset to null
+            opInterval = null;
+            edInterval = null;
+            
             const url_skip_intro = `https://api.aniskip.com/v1/skip-times/${ani_id}/${current_ep}?types=op&types=ed`;
             fetch(url_skip_intro)
                 .then(response => response.json())
@@ -486,23 +491,33 @@
                         edInterval = ed ? [ed.interval.start_time, ed.interval.end_time] : null;
 
                         // Aggiungi 5 secondi all'inizio e sottrai 5 secondi alla fine
-                        opInterval = [opInterval[0] + 5, opInterval[1] - 10]; 
-                        edInterval = [edInterval[0] + 5, edInterval[1] - 5];
+                        opInterval = opInterval ? [opInterval[0] + 5, opInterval[1] - 10] : null;
+                        edInterval = edInterval ? [edInterval[0] + 5, edInterval[1] - 5] : null;
 
-                        const opStartMin = `${Math.floor(opInterval[0] / 60)}:${Math.floor(opInterval[0] % 60).toString().padStart(2, '0')}`;
-                        const opEndMin = `${Math.floor(opInterval[1] / 60)}:${Math.floor(opInterval[1] % 60).toString().padStart(2, '0')}`;
-                        console.log(`OP: da ${opStartMin} a ${opEndMin}`);
-                        skip_intro_data_span.textContent = `${opStartMin}, ${opEndMin};`;
+                        if (!opInterval) {
+                            console.warn('Intro skipper: no OP data found');
+                            skip_intro_data_span.textContent = `--:--, --:--;`;
+                            document.getElementById('skipForm').style.display = 'block';
+                        } else {
+                            const opStartMin = `${Math.floor(opInterval[0] / 60)}:${Math.floor(opInterval[0] % 60).toString().padStart(2, '0')}`;
+                            const opEndMin = `${Math.floor(opInterval[1] / 60)}:${Math.floor(opInterval[1] % 60).toString().padStart(2, '0')}`;
+                            console.log(`OP: da ${opStartMin} a ${opEndMin}`);
+                            skip_intro_data_span.textContent = `${opStartMin}, ${opEndMin};`;
+                        }
                         
-                        const edStartMin = `${Math.floor(edInterval[0] / 60)}:${Math.floor(edInterval[0] % 60).toString().padStart(2, '0')}`;
-                        const edEndMin = `${Math.floor(edInterval[1] / 60)}:${Math.floor(edInterval[1] % 60).toString().padStart(2, '0')}`;
-                        console.log(`ED: da ${edStartMin} a ${edEndMin}`);
-                        skip_intro_data_span.textContent += ` ${edStartMin}, ${edEndMin}`;
+                        if (!edInterval) {
+                            console.warn('Intro skipper: no ED data found');
+                            skip_intro_data_span.textContent += ` --:--, --:--`;
+                            document.getElementById('skipForm').style.display = 'block';
+                        } else {
+                            const edStartMin = `${Math.floor(edInterval[0] / 60)}:${Math.floor(edInterval[0] % 60).toString().padStart(2, '0')}`;
+                            const edEndMin = `${Math.floor(edInterval[1] / 60)}:${Math.floor(edInterval[1] % 60).toString().padStart(2, '0')}`;
+                            console.log(`ED: da ${edStartMin} a ${edEndMin}`);
+                            skip_intro_data_span.textContent += ` ${edStartMin}, ${edEndMin}`;
+                        }
                     } else {
                         console.warn('Intro skipper: no data found');
                         skip_intro_data_span.textContent = `Intro non trovata`;
-                        opInterval = null;
-                        edInterval = null;
                         document.getElementById('skipForm').style.display = 'block';
                     }
                 })
