@@ -324,6 +324,7 @@
         }
         function addToHistory(item, maxItems = 20) {
             {% if VERCEL %}
+            console.log("Soglia raggiunta, salvo in history:", item);
             fetch('{{ url_for("ani_api.addHistory") }}', {
                 method: 'POST',
                 headers: {
@@ -371,7 +372,74 @@
             }
 
             setCookie("history", JSON.stringify(history));
+            console.log("Soglia raggiunta, salvo in history:", item);
             {% endif %}
+        }
+        function removeFromHistory() {
+            {% if VERCEL %}
+            fetch('{{ url_for("ani_api.removeHistory") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({title: title})
+            }).then(async response => {
+                if (response.ok) {
+                    // 1. Rimuove l'elemento dalla UI
+                    const card = el.closest('.anime');
+                    if (card) card.remove();
+                    
+                    // 2. Attende la risoluzione del JSON inviato dal backend Flask
+                    const data = await response.json(); // <-- gestito con await
+                    
+                    if (data.vuota) {
+                        const container = document.getElementById('continua');
+                        if (container) container.style.display = 'none';
+                    }
+                }
+            });
+            {% else %}
+            let history = [];
+            const raw = getCookie("history");
+
+            if (raw) {
+                try {
+                    history = JSON.parse(raw);
+                } catch (e) {
+                    history = [];
+                }
+            }
+
+            // Rimuove solo l'elemento con quel titolo
+            history = history.filter(h => h.title !== title);
+
+            setCookie("history", JSON.stringify(history));
+            {% endif %}
+        }
+        function addNextEpisodeToHistory() {
+            localStorage.removeItem(storageKey);
+            giaFinito = true;
+            
+            let newEp = parseInt(current_ep) + 1;
+            if (newEp > Object.keys(episodi).length) {
+                removeFromHistory();
+                console.log("Episodio finale raggiunto, rimosso dalla history");
+                return;
+            }
+
+            // salva il prossimo nella hystory
+            let rawUrl = window.location.href;
+            // 1. Estrai la parte relativa dopo "play/"
+            let pathWithQuery = rawUrl.split("play/").at(-1);
+            // 2. Crea un oggetto URL usando un dominio fittizio per manipolare i parametri
+            let parsedUrl = new URL(pathWithQuery, "https://dummy.com");
+            // 3. Modifica o imposta il valore del parametro 'ep'
+            parsedUrl.searchParams.set("ep", newEp);
+            // 4. Ricostruisci il path finale
+            let url = parsedUrl.pathname.slice(1) + parsedUrl.search;
+            let last = { "url": url, "title": title, "ep": newEp, "img": immagine };
+
+            addToHistory(last);
         }
         
         const SOGLIA_SECONDI = 150; // 2:30 minuti
@@ -386,7 +454,6 @@
                 let url = window.location.href;
                 url = url.split("play/").at(-1);
                 let last = { "url": url, "title": title, "ep": current_ep, "img": immagine };
-                console.log("Soglia raggiunta, salvo in history:", last);
 
                 addToHistory(last);
             }
@@ -414,33 +481,13 @@
         });
         // Quando il video finisce, rimuovi il salvataggio
         video.addEventListener('ended', () => {
-            localStorage.removeItem(storageKey);
-            giaFinito = true;
+            addNextEpisodeToHistory();
         });
 
         // Se il video è vicino alla ed, rimuovi il salvataggio
         video.addEventListener('timeupdate', () => {
             if (!opInterval && !edInterval || giaFinito) return; // se opInterval... non è trovato, non fare nulla
-            if (video.currentTime >= edInterval[0] - 10) {
-                localStorage.removeItem(storageKey);
-                giaFinito = true;
-
-                // salva il prossimo nella hystory
-                let rawUrl = window.location.href;
-                // 1. Estrai la parte relativa dopo "play/"
-                let pathWithQuery = rawUrl.split("play/").at(-1);
-                // 2. Crea un oggetto URL usando un dominio fittizio per manipolare i parametri
-                let parsedUrl = new URL(pathWithQuery, "https://dummy.com");
-                // 3. Modifica o imposta il valore del parametro 'ep'
-                let newEp = parseInt(current_ep) + 1;
-                parsedUrl.searchParams.set("ep", newEp);
-                // 4. Ricostruisci il path finale
-                let url = parsedUrl.pathname.slice(1) + parsedUrl.search;
-                let last = { "url": url, "title": title, "ep": newEp, "img": immagine };
-                console.log("Soglia raggiunta, salvo il prossimo in history:", last);
-
-                addToHistory(last);
-            }
+            if (video.currentTime >= edInterval[0] - 10) addNextEpisodeToHistory();
         });
 
         async function getRealVideoUrl(epUrl) {
