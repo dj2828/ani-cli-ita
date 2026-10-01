@@ -541,14 +541,19 @@
         let opInterval = null;
         let edInterval = null;
         document.querySelector('.button input').checked = skip_intro;
+        const skip_intro_form = document.getElementById('skipForm');
         function toggleSkipIntro() {
             skip_intro = !skip_intro;
             localStorage.setItem("skip_intro", skip_intro.toString());
             skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
+            if ((!opInterval || !edInterval) && skip_intro) {
+                skip_intro_form.style.display = 'block';
+            } else {
+                skip_intro_form.style.display = 'none';
+            }
         }
         function initSkipIntro() {
             skip_intro_data_span.style.display = (skip_intro) ? 'block' : 'none';
-            document.getElementById('skipForm').style.display = 'none';
 
             // reset to null
             opInterval = null;
@@ -573,7 +578,7 @@
                         if (!opInterval) {
                             console.warn('Intro skipper: no OP data found');
                             skip_intro_data_span.textContent = `--:--, --:--;`;
-                            document.getElementById('skipForm').style.display = 'block';
+                            skip_intro_form.style.display = 'block';
                         } else {
                             const opStartMin = `${Math.floor(opInterval[0] / 60)}:${Math.floor(opInterval[0] % 60).toString().padStart(2, '0')}`;
                             const opEndMin = `${Math.floor(opInterval[1] / 60)}:${Math.floor(opInterval[1] % 60).toString().padStart(2, '0')}`;
@@ -584,7 +589,7 @@
                         if (!edInterval) {
                             console.warn('Intro skipper: no ED data found');
                             skip_intro_data_span.textContent += ` --:--, --:--`;
-                            document.getElementById('skipForm').style.display = 'block';
+                            skip_intro_form.style.display = 'block';
                         } else {
                             const edStartMin = `${Math.floor(edInterval[0] / 60)}:${Math.floor(edInterval[0] % 60).toString().padStart(2, '0')}`;
                             const edEndMin = `${Math.floor(edInterval[1] / 60)}:${Math.floor(edInterval[1] % 60).toString().padStart(2, '0')}`;
@@ -594,7 +599,7 @@
                     } else {
                         console.warn('Intro skipper: no data found');
                         skip_intro_data_span.textContent = `Intro non trovata`;
-                        document.getElementById('skipForm').style.display = 'block';
+                        skip_intro_form.style.display = 'block';
                     }
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
@@ -622,7 +627,7 @@
             return parseFloat(timeStr) || 0;
         }
         // sendSkipIntro
-            document.getElementById('skipForm').addEventListener('submit', async function(event) {
+            skip_intro_form.addEventListener('submit', async function(event) {
                 event.preventDefault();
 
                 const statusDiv = document.getElementById('statusMessage');
