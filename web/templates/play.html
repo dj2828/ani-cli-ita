@@ -404,7 +404,9 @@
         });
         // Salva la posizione periodicamente durante la riproduzione
         let lastSave = 0;
+        let giaFinito = false;
         video.addEventListener('timeupdate', () => {
+            if (giaFinito) return; // se il video è finito, non salvare più
             if (Math.abs(video.currentTime - lastSave) > 5) { // salva ogni 5 secondi
                 localStorage.setItem(storageKey, video.currentTime);
                 lastSave = video.currentTime;
@@ -413,6 +415,32 @@
         // Quando il video finisce, rimuovi il salvataggio
         video.addEventListener('ended', () => {
             localStorage.removeItem(storageKey);
+            giaFinito = true;
+        });
+
+        // Se il video è vicino alla ed, rimuovi il salvataggio
+        video.addEventListener('timeupdate', () => {
+            if (!opInterval && !edInterval || giaFinito) return; // se opInterval... non è trovato, non fare nulla
+            if (video.currentTime >= edInterval[0] - 10) {
+                localStorage.removeItem(storageKey);
+                giaFinito = true;
+
+                // salva il prossimo nella hystory
+                let rawUrl = window.location.href;
+                // 1. Estrai la parte relativa dopo "play/"
+                let pathWithQuery = rawUrl.split("play/").at(-1);
+                // 2. Crea un oggetto URL usando un dominio fittizio per manipolare i parametri
+                let parsedUrl = new URL(pathWithQuery, "https://dummy.com");
+                // 3. Modifica o imposta il valore del parametro 'ep'
+                let newEp = parseInt(current_ep) + 1;
+                parsedUrl.searchParams.set("ep", newEp);
+                // 4. Ricostruisci il path finale
+                let url = parsedUrl.pathname.slice(1) + parsedUrl.search;
+                let last = { "url": url, "title": title, "ep": newEp, "img": immagine };
+                console.log("Soglia raggiunta, salvo il prossimo in history:", last);
+
+                addToHistory(last);
+            }
         });
 
         async function getRealVideoUrl(epUrl) {
@@ -446,6 +474,7 @@
             storageKey = `video-progress: ${title} - ${current_ep}`;
 
             giaSalvato = false; // per history
+            giaFinito = false; // per resume
 
             initSkipIntro(); // re-inizializza skip intro per il nuovo episodio
 
@@ -491,7 +520,7 @@
                         edInterval = ed ? [ed.interval.start_time, ed.interval.end_time] : null;
 
                         // Aggiungi 5 secondi all'inizio e sottrai 5 secondi alla fine
-                        opInterval = opInterval ? [opInterval[0] + 5, opInterval[1] - 10] : null;
+                        opInterval = opInterval ? [opInterval[0] + 5, opInterval[1] - 5] : null;
                         edInterval = edInterval ? [edInterval[0] + 5, edInterval[1] - 5] : null;
 
                         if (!opInterval) {
