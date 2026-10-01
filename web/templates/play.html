@@ -601,6 +601,7 @@
                         skip_intro_data_span.textContent = `Intro non trovata`;
                         skip_intro_form.style.display = 'block';
                     }
+                    if (!skip_intro) skip_intro_form.style.display = 'none';
                 })
                 .catch(error => console.error('Errore nel recupero dei dati di skip:', error));
         }
