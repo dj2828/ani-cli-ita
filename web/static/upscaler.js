@@ -154,8 +154,20 @@ async function startPipeline() {
 
     if (modeSelect.value === 'off') {
         setStatus('📴 Upscaling disattivato — il video mostra la sorgente originale.');
+        // Rimuoviamo l'attributo crossorigin se presente, per evitare problemi di CORS con alcuni video
+        if (srcVideo.crossOrigin === 'anonymous') {
+            srcVideo.removeAttribute('crossorigin');
+            srcVideo.load();
+        }
         drawFrame();
         return;
+    }
+
+    // il video non ha l'attributo crossorigin perchè su alcuni anime non worka (tipo the-girl-downstairs.TwwtZ)
+    // ma server per il rendering WebGPU
+    if (srcVideo.crossOrigin !== 'anonymous') {
+        srcVideo.setAttribute('crossorigin', 'anonymous');
+        srcVideo.load();
     }
 
     const ok = await checkWebGPU();
