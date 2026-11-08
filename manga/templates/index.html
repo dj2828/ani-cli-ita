@@ -66,9 +66,19 @@
 
         .button {
             background-color: #ff5500;
-            padding: 10px;
-            border-radius: 10px;
+            padding: 15px;
+            border-radius: 20px;
             cursor: pointer;
+        }
+
+        #search-input {
+            margin-right: 5px;
+            padding: 14px 18px;
+            border-radius: 20px;
+            color: black;
+            border: none;
+            min-width: 260px;
+            font-size: 1rem;
         }
 
         @media (max-width: 1050px) {
@@ -133,7 +143,7 @@
     <center>
     <br><br>
     <form action="{{ url_for('manga.index') }}" method="get">
-        <input type="search" name="q" style="padding: 20px; border-radius: 20px; color: black;" value="{{ q if q else ''}}">
+        <input type="search" id="search-input" name="q" placeholder="Cerca manga" value="{{ q if q else '' }}">
         <button type="submit" style="border: none;" class="button">Cerca</button>
     </form>
     <br><br>
